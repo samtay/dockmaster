@@ -1,2 +1,2 @@
 # dockmaster
-the dockmaster is yaml loving docker-compose orchestration
+command line utility providing conveniences around docker-compose
