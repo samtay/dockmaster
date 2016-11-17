@@ -15,8 +15,11 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
+  exposed-modules:     Dockmaster.Types
   build-depends:       base >= 4.7 && < 5
+                     , yaml
+                     , text
+                     , unordered-containers
   default-language:    Haskell2010
 
 executable dockmaster-exe
@@ -24,6 +27,8 @@ executable dockmaster-exe
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
+                     , yaml
+                     , bytestring
                      , dockmaster
   default-language:    Haskell2010
 
@@ -33,6 +38,9 @@ test-suite dockmaster-test
   main-is:             Spec.hs
   build-depends:       base
                      , dockmaster
+                     , directory
+                     , yaml
+                     , bytestring
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

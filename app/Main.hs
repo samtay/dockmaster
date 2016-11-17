@@ -1,6 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Lib
+import Dockmaster.Types
 
-main :: IO ()
-main = someFunc
+import Data.Yaml
+import qualified Data.ByteString as BS
+
+main = do
+  ymlData <- BS.readFile "dockmaster.yml"
+  let d = decodeEither ymlData :: Either String Dockmaster
+  print d
