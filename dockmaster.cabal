@@ -1,7 +1,6 @@
 name:                dockmaster
 version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
+synopsis:            provide configurable functionality around docker-compose
 homepage:            https://github.com/SamTay/dockmaster#readme
 license:             BSD3
 license-file:        LICENSE
@@ -10,8 +9,13 @@ maintainer:          sam.chong.tay@gmail.com
 copyright:           2016 Sam Tay
 category:            Web
 build-type:          Simple
--- extra-source-files:
+tested-with:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.11.*
 cabal-version:       >=1.10
+description:
+  This is a simple command line tool focused around a dockmaster.yml file
+  for your project, which allows some conveniences such as specifying
+  docker-machine targets and allowing arbitrary hooks around commands
+  that are forwarded to docker-compose.
 
 library
   hs-source-dirs:      src
