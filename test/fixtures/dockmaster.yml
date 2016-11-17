@@ -1,0 +1,24 @@
+file:
+  path: docker-compose.j2
+  config:
+    - /etc/dockmaster/defaults.yml
+    - env.vars
+
+targets:
+  - name: node-a
+    type: docker-machine
+
+    # optional, defaults to name
+    machine: node-a
+
+commands:
+  - up:
+      pre_hooks:
+        - file: relative_path/to/hook.sh
+        - file: /absolute/path/to/hook.sh
+        - shell: rm -rf .working
+  - wiggle:
+      compose: false
+      # ^^^ does not call docker-compose between pre- and post- hooks.
+      pre_hooks:
+        - file: wiggle.sh
