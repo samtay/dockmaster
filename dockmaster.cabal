@@ -20,10 +20,14 @@ description:
 library
   hs-source-dirs:      src
   exposed-modules:     Dockmaster.Types
+                     , Dockmaster
+  other-modules:       Dockmaster.Locator
   build-depends:       base >= 4.7 && < 5
                      , yaml
                      , text
                      , unordered-containers
+                     , shelly
+                     , text
   default-language:    Haskell2010
 
 executable dockmaster-exe
