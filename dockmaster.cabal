@@ -38,6 +38,9 @@ executable dockmaster-exe
                      , yaml
                      , bytestring
                      , dockmaster
+                     , shelly
+                     , text
+                     , optparse-applicative
   default-language:    Haskell2010
 
 test-suite dockmaster-test
