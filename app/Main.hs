@@ -13,30 +13,42 @@ import Options.Applicative
 -- Base packages
 import System.Environment
 import Prelude hiding (FilePath)
-import Data.Semigroup ((<>))
 import qualified Data.Text as T
 
 default (T.Text)
+-- TODO possibly put this in another module
+-- CLI Flags
+data CLI = CLI
+  { cliCompositionDir :: String
+  , cliDcCommand      :: String
+  , cliDcOpts         :: String
+  } deriving (Eq,Ord,Show)
+
+runtime :: CLI -> IO T.Text
+runtime opts = shelly $ verbosely $ do
+  let (path, command, optargs) = mapTriple T.pack
+                               ( cliCompositionDir opts
+                               , cliDcCommand opts
+                               , cliDcOpts opts
+                               )
+   in dm (fromText path) command [optargs]
+
+parser :: Parser CLI
+parser = CLI
+  <$> strOption
+      ( long "composition-dir"
+      <> metavar "PATH"
+      <> help "Composition directory (can be relative to COMPOSITIONS_DIR envvar array)" )
+  <*> argument str (metavar "COMMAND")
+  <*> argument str (metavar "[args..]")
 
 main :: IO T.Text
-main = shelly $ verbosely $ do
-  args <- liftIO $ getArgs
-  case map T.pack args of
-    (path : command : optargs) -> dm (fromText path) command optargs
-    otherwise                  -> echo_n_err usage >> return usage
+main = execParser opts >>= runtime
+  where opts = info (helper <*> parser) 
+          (  fullDesc
+          <> progDesc "Orchestrate your docker-compose"
+          <> header "dm - yaml loving docker compose orchestration"
+          )
 
-usage :: T.Text
-usage =
-  "\
-    \\n Dockmaster is yaml loving docker compose orchestration\
-    \\n\
-    \\n Usage: dm PATH COMMAND [arg...]\
-    \\n\
-    \\nAvailable options:\
-    \\n  none at the moment\
-    \\n\
-    \\nAvailable commands:\
-    \\n  dm PATH COMMAND [arg..]     Executes 'docker-compose COMMAND [args..]'\
-    \\n                              in the resolved composition directory from PATH.\
-    \\n                              Note that if [args..] are present, the -- operator\
-    \\n                              is necessary, i.e. dm . -- up -d"
+mapTriple :: (a -> b) -> (a, a, a) -> (b, b, b)
+mapTriple f (x,y,z) = (f x, f y, f z)
