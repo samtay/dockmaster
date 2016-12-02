@@ -38,7 +38,9 @@ parser = CLI
   <$> strOption
       ( long "composition-dir"
       <> metavar "PATH"
-      <> help "Composition directory (can be relative to COMPOSITIONS_DIR envvar array)" )
+      <> showDefault
+      <> value "."
+      <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array." )
   <*> argument str (metavar "COMMAND")
   <*> argument str (metavar "[args..]")
 
