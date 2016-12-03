@@ -36,7 +36,8 @@ runtime opts = shelly $ verbosely $ do
 parser :: Parser CLI
 parser = CLI
   <$> strOption
-      ( long "composition-dir"
+      ( long "composition"
+      <> short 'c'
       <> metavar "PATH"
       <> showDefault
       <> value "."
