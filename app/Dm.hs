@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-module Main where
+module Dm where
 
 -- Local packages
 import Dockmaster
@@ -16,6 +16,7 @@ import Prelude hiding (FilePath)
 import qualified Data.Text as T
 
 default (T.Text)
+
 -- TODO possibly put this in another module
 -- CLI Flags
 data CLI = CLI
@@ -24,7 +25,7 @@ data CLI = CLI
   , cliDcOpts         :: String
   } deriving (Eq,Ord,Show)
 
-runtime :: CLI -> IO T.Text
+runtime :: CLI -> IO ()
 runtime opts = shelly $ verbosely $ do
   let (path, command, optargs) = mapTriple T.pack
                                ( cliCompositionDir opts
@@ -41,11 +42,15 @@ parser = CLI
       <> metavar "PATH"
       <> showDefault
       <> value "."
-      <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array." )
+      <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array."
+      )
   <*> argument str (metavar "COMMAND")
-  <*> argument str (metavar "[args..]")
+  <*> argument str
+      ( metavar "args"
+      <> value ""
+      )
 
-main :: IO T.Text
+main :: IO ()
 main = execParser opts >>= runtime
   where opts = info (helper <*> parser) 
           (  fullDesc
