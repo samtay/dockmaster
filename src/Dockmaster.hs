@@ -5,8 +5,13 @@ module Dockmaster
   ( dm
   ) where
 
+import Data.Either
+import Data.Monoid ((<>))
+
 -- Local modules
 import Dockmaster.Locator
+import Dockmaster.Parser
+import Dockmaster.Types
 
 -- External modules
 import Shelly
