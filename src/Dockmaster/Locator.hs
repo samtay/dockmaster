@@ -22,7 +22,7 @@ getWorkDir :: FilePath -> Sh (Either T.Text FilePath)
 getWorkDir p
   -- search for dockmaster.yml
   -- aggregate searched dirs for verbosity msg ?
-  | p /= "."  = do return $ Left "dockmaster.yml file not found"
+  | p /= "."  = do return $ Left "Composition directory resolution not yet developed"
   | otherwise = do
     wd <- pwd
     return $ Right wd
