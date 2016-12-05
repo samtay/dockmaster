@@ -14,18 +14,18 @@ data Dockmaster = Dockmaster { dmFile   :: Maybe ComposeFile
                              } deriving (Show)
 
 -- | Configuration for docker-compose.yml file template & vars
-data ComposeFile = ComposeFile { cfPath :: Maybe String
-                               , cfConfig :: [String]
+data ComposeFile = ComposeFile { cfPath :: Maybe T.Text
+                               , cfConfig :: [T.Text]
                                } deriving (Show)
 
 -- | Targets are used to identify where compositions are run
-data Target = Target { targetName    :: Maybe String
-                     , targetType    :: Maybe String
-                     , targetMachine :: Maybe String
+data Target = Target { targetName    :: T.Text
+                     , targetType    :: T.Text
+                     , targetMachine :: Maybe T.Text
                      } deriving (Show)
 
 -- | Hooks can be specified by filename or direct shell command
-data Hook = File String | Shell String deriving (Show)
+data Hook = File T.Text | Shell T.Text deriving (Show)
 
 -- | Configuration for each command
 data CommandConfig = CommandConfig { ccCompose :: Bool
@@ -40,8 +40,8 @@ instance FromJSON ComposeFile where
 
 instance FromJSON Target where
   parseJSON (Object v) = Target
-                         <$> v .:? "name"
-                         <*> v .:? "type"
+                         <$> v .: "name"
+                         <*> v .: "type"
                          <*> v .:? "machine"
 
 instance FromJSON Hook where
