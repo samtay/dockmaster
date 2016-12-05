@@ -19,8 +19,8 @@ description:
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Dockmaster.Types
-                     , Dockmaster
+  exposed-modules:     Dockmaster
+                     , Dockmaster.Types
   other-modules:       Dockmaster.Locator
   build-depends:       base >= 4.7 && < 5
                      , yaml
@@ -32,8 +32,8 @@ library
 
 executable dm
   hs-source-dirs:      app
-  main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  main-is:             Dm.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -main-is Dm
   build-depends:       base
                      , yaml
                      , bytestring
