@@ -13,6 +13,7 @@ import Options.Applicative
 -- Base packages
 import System.Environment
 import Prelude hiding (FilePath)
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 
 default (T.Text)
