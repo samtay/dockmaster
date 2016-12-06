@@ -12,20 +12,19 @@ import Prelude hiding (FilePath)
 import qualified Data.Text as T
 default (T.Text)
 
+-- | Resolve the appropriate docker-compose workdir (based on path arg)
+-- TODO This needs to search paths in ~/.dockmaster/config !!
+  -- aggregate searched dirs for verbosity msg ?
+getWorkDir :: FilePath -> Sh (Either T.Text FilePath)
+getWorkDir p = do
+  found <- test_e (p </> "dockmaster.yml")
+  return $ if found
+     then Right p
+     else Left "dockmaster.yml file not found"
+
 -- | Execute action in workdir (does not affect cwd outside of action)
 workDirExec :: FilePath -> Sh a -> Sh (Either T.Text a)
 workDirExec = undefined
-
--- | Resolve the appropriate docker-compose workdir (based on path arg)
--- TODO This needs error handling when dockmaster.yml not found
-getWorkDir :: FilePath -> Sh (Either T.Text FilePath)
-getWorkDir p
-  -- search for dockmaster.yml
-  -- aggregate searched dirs for verbosity msg ?
-  | p /= "."  = do return $ Left "Composition directory resolution not yet developed"
-  | otherwise = do
-    wd <- pwd
-    return $ Right wd
 
 -- | Cd into workdir
 -- TODO check if cd retains context when run externally (i.e. do I need to pass action here)
