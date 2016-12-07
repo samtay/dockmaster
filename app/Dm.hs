@@ -42,14 +42,16 @@ subVerbosity :: Bool -> Sh a -> Sh a
 subVerbosity v =
   (print_stdout v) . (print_stderr v) . (print_commands v)
 
-parser :: Parser CLI
-parser = CLI
+-- | Parser for CLI opts/args.
+-- Takes a string argument as the default composition value
+parser :: String -> Parser CLI
+parser defaultCompDir = CLI
   <$> strOption
       ( long "composition"
       <> short 'c'
       <> metavar "PATH"
       <> showDefault
-      <> value "."
+      <> value defaultCompDir
       <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array." )
   <*> switch
       ( long "verbose"
@@ -59,9 +61,16 @@ parser = CLI
   <*> many (argument str (metavar "args"))
 
 main :: IO ()
-main = execParser opts >>= runtime
-  where opts = info (helper <*> parser) 
-          (  fullDesc
-          <> progDesc "Orchestrate your docker-compose"
-          <> header "dm - yaml loving docker compose orchestration"
-          )
+main = do
+  envCompDir <- shelly $ get_env "DOCKMASTER_COMPOSITION"
+  let defaultCompDir = maybe "." T.unpack envCompDir
+   in execParser (opts defaultCompDir) >>= runtime
+
+-- | Generate ParserInfo CLI.
+-- Takes a string argument as the default composition value
+opts :: String -> ParserInfo CLI
+opts defaultCompDir = info (helper <*> parser defaultCompDir)
+  (  fullDesc
+  <> progDesc "Orchestrate your docker-compose"
+  <> header "dm - yaml loving docker compose orchestration"
+  )
