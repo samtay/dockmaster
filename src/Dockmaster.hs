@@ -40,10 +40,9 @@ dm path command args = do
         Left err    -> echo_err err
         Right dmYml -> do
           let targets = map targetName $ dmTargets dmYml -- primitively just grabbing machine name
-          results <- (flip mapM) targets $ \m -> dockermachine m $ do
+          (flip mapM_) targets $ \m -> dockermachine m $ do
             response <- hookWrap command $ dockercompose $ command : args
             echo response
-          mapM_ echo_err $ lefts results
 
 
 -- | Run docker-compose command
@@ -57,12 +56,12 @@ hookWrap = undefined
 
 -- | Takes machine name and Sh action, and wraps Sh action in scope of
 -- docker-machine env
-dockermachine :: T.Text -> Sh a -> Sh (Either T.Text a)
+dockermachine :: T.Text -> Sh a -> Sh a
 dockermachine m action = sub $ do
   envvars <- run "docker-machine" ["env", m]
   mapM (\(var,val) -> setenv (T.pack var) (T.pack val))
     $ pairEnvvars $ T.unpack envvars
-  action >>= return . Right
+  action
 
 -- | Accept a string of possibly many export VAR=VAL statements
 -- and return the (VAR,VAL) pairs
