@@ -18,8 +18,6 @@ import qualified Data.Text as T
 
 default (T.Text)
 
--- TODO possibly put this in another module
--- CLI Flags
 data CLI = CLI
   { cliCompositionDir :: String
   , cliVerbose        :: Bool
@@ -27,6 +25,17 @@ data CLI = CLI
   , cliDcOpts         :: [String]
   } deriving (Eq,Show)
 
+-- | Main runtime
+-- Retrieves possible DOCKMASTER_COMPOSITION env variable for use as
+-- default composition, then defers to cli parser & shelly runtime
+main :: IO ()
+main = do
+  envCompDir <- shelly $ get_env "DOCKMASTER_COMPOSITION"
+  let defaultCompDir = maybe "." T.unpack envCompDir
+   in execParser (opts defaultCompDir) >>= runtime
+
+-- | Runtime execution (executed in shell monad Sh, lifted to IO)
+-- Accepts CLI instance and forwards to Dockmaster.dm function
 runtime :: CLI -> IO ()
 runtime opts = shelly $ (subVerbosity $ cliVerbose opts) $ do
   let (path, command, optargs)
@@ -59,12 +68,6 @@ parser defaultCompDir = CLI
       <> help "Verbose output flag" )
   <*> argument str (metavar "COMMAND")
   <*> many (argument str (metavar "args"))
-
-main :: IO ()
-main = do
-  envCompDir <- shelly $ get_env "DOCKMASTER_COMPOSITION"
-  let defaultCompDir = maybe "." T.unpack envCompDir
-   in execParser (opts defaultCompDir) >>= runtime
 
 -- | Generate ParserInfo CLI.
 -- Takes a string argument as the default composition value
