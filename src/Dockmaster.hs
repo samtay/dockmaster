@@ -31,18 +31,18 @@ dm :: FilePath -> DCCommand -> [T.Text] -> Sh ()
 dm path command args = do
   eWd <- getWorkDir path
   case eWd of
-    Left err -> echo_n_err err
+    Left err -> errorExit err
     Right wd -> sub $ do
       cd wd
       dmYml <- dockmasterYml
       case dmYml of
-        Left err    -> echo_n_err err
+        Left err    -> echo_err err
         Right dmYml -> do
           let targets = map targetName $ dmTargets dmYml -- primitively just grabbing machine name
           results <- (flip mapM) targets $ \m -> dockermachine m $ do
             response <- hookWrap command $ dockercompose $ command : args
-            echo_n response
-          mapM_ echo_n_err $ lefts results
+            echo response
+          mapM_ echo_err $ lefts results
 
 
 -- | Run docker-compose command
@@ -59,12 +59,13 @@ hookWrap = undefined
 dockermachine :: T.Text -> Sh a -> Sh (Either T.Text a)
 dockermachine m action = sub $ do
   envvars <- run "docker-machine" ["env", m]
-  -- TODO check if successful before running action
-  mapM (\(var,val) -> setenv (T.pack var) (T.pack val)) $ (pairEnvvars) (T.unpack envvars)
+  mapM (\(var,val) -> setenv (T.pack var) (T.pack val))
+    $ pairEnvvars $ T.unpack envvars
   action >>= return . Right
 
 -- | Accept a string of possibly many export VAR=VAL statements
 -- and return the (VAR,VAL) pairs
+-- TODO: Use a parser (idiomatic haskell) over regex !!!
 pairEnvvars :: String -> [(String,String)]
 pairEnvvars ls = foldr go [] $ lines ls
   where go :: String -> [(String,String)] -> [(String,String)]
