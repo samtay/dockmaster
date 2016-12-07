@@ -22,18 +22,25 @@ default (T.Text)
 -- CLI Flags
 data CLI = CLI
   { cliCompositionDir :: String
+  , cliVerbose        :: Bool
   , cliDcCommand      :: String
   , cliDcOpts         :: [String]
-  } deriving (Eq,Ord,Show)
+  } deriving (Eq,Show)
 
 runtime :: CLI -> IO ()
-runtime opts = shelly $ silently $ do
+runtime opts = shelly $ (subVerbosity $ cliVerbose opts) $ do
   let (path, command, optargs)
         = ( T.pack $ cliCompositionDir opts
           , T.pack $ cliDcCommand opts
           , map T.pack $ cliDcOpts opts
           )
    in dm (fromText path) command optargs
+
+-- | Accepts a verbosity setting for the subshell
+-- Propogates verbosity to printing options for commands, stdout, stderr
+subVerbosity :: Bool -> Sh a -> Sh a
+subVerbosity v =
+  (print_stdout v) . (print_stderr v) . (print_commands v)
 
 parser :: Parser CLI
 parser = CLI
@@ -43,8 +50,11 @@ parser = CLI
       <> metavar "PATH"
       <> showDefault
       <> value "."
-      <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array."
-      )
+      <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array." )
+  <*> switch
+      ( long "verbose"
+      <> short 'v'
+      <> help "Verbose output flag" )
   <*> argument str (metavar "COMMAND")
   <*> many (argument str (metavar "args"))
 
