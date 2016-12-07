@@ -46,10 +46,7 @@ parser = CLI
       <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array."
       )
   <*> argument str (metavar "COMMAND")
-  <*> some (argument str
-      ( metavar "args"
-      <> value ""
-      ))
+  <*> many (argument str (metavar "args"))
 
 main :: IO ()
 main = execParser opts >>= runtime
