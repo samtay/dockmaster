@@ -39,6 +39,18 @@ Dockmaster was built for convenience. Some of these conveniences are:
      - env.vars
  ```
 
+### installation
+Dockmaster is still under development. Once complete, installation details will be provided.
+
+#### dependencies
+Dockmaster requires the following tools installed on your system at run time:
+
+0. [docker-compose](https://docs.docker.com/compose/install/)
+1. [docker-machine](https://docs.docker.com/machine/install-machine)
+2. [cop](https://github.com/jasmith590/COP)
+
+Alternatively, check out [dex](https://github.com/dockerland/dex) which will allow you to get all of these tools via dex images (docker executables). Dex only requires [docker](https://www.docker.com/) and [git](https://git-scm.com/) and can run pretty much anywhere.
+
 ### usage
 Dockmaster provides binaries `dm` and `dmc` which are for interacting with `dockmaster.yml` files and setting config values, respectively:
 ```shell
@@ -62,5 +74,3 @@ $ dmc DOCKMASTER_COMPOSITION_DIRS $HOME/git/docker-repo/compositions
 $ dm -c deploybot logs
 ```
 
-### installation
-Dockmaster is still under development. Once complete, installation details will be provided.
