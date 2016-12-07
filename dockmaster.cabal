@@ -30,6 +30,7 @@ library
                      , shelly
                      , text
                      , bytestring
+                     , regex-posix
   default-language:    Haskell2010
 
 executable dm

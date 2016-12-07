@@ -15,6 +15,7 @@ import Dockmaster.Types
 
 -- External modules
 import Shelly
+import Text.Regex.Posix
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 default (T.Text)
@@ -57,9 +58,21 @@ hookWrap = undefined
 -- docker-machine env
 dockermachine :: T.Text -> Sh a -> Sh (Either T.Text a)
 dockermachine m action = sub $ do
-  run "docker-machine" ["env", m]
+  envvars <- run "docker-machine" ["env", m]
   -- TODO check if successful before running action
-  if True
-     then return $ Left $ "Could not reach docker machine " <> m
-     else action >>= return . Right
+  mapM (\(var,val) -> setenv (T.pack var) (T.pack val)) $ (pairEnvvars) (T.unpack envvars)
+  action >>= return . Right
+
+-- | Accept a string of possibly many export VAR=VAL statements
+-- and return the (VAR,VAL) pairs
+pairEnvvars :: String -> [(String,String)]
+pairEnvvars ls = foldr go [] $ lines ls
+  where go :: String -> [(String,String)] -> [(String,String)]
+        go l pairs = case l =~ exportPattern :: [[String]] of
+                          [[_,var,val]] -> (var, val) : pairs
+                          _             -> pairs
+
+-- | Regex pattern for matching docker-machine env output
+exportPattern :: String
+exportPattern = "export ([A-Za-z0-9_]+)=\"(.*)\""
 
