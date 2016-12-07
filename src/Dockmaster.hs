@@ -7,6 +7,7 @@ module Dockmaster
 
 import Data.Either
 import Data.Monoid ((<>))
+import Data.Maybe
 
 -- Local modules
 import Dockmaster.Locator
@@ -67,11 +68,11 @@ dockermachine m action = sub $ do
 -- and return the (VAR,VAL) pairs
 -- TODO: Use a parser (idiomatic haskell) over regex !!!
 pairEnvvars :: String -> [(String,String)]
-pairEnvvars ls = foldr go [] $ lines ls
-  where go :: String -> [(String,String)] -> [(String,String)]
-        go l pairs = case l =~ exportPattern :: [[String]] of
-                          [[_,var,val]] -> (var, val) : pairs
-                          _             -> pairs
+pairEnvvars ls = mapMaybe match $ lines ls
+  where match :: String -> Maybe (String,String)
+        match l = case l =~ exportPattern :: [[String]] of
+                    [[_,var,val]] -> Just (var, val)
+                    _             -> Nothing
 
 -- | Regex pattern for matching docker-machine env output
 exportPattern :: String
