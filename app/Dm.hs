@@ -23,17 +23,17 @@ default (T.Text)
 data CLI = CLI
   { cliCompositionDir :: String
   , cliDcCommand      :: String
-  , cliDcOpts         :: String
+  , cliDcOpts         :: [String]
   } deriving (Eq,Ord,Show)
 
 runtime :: CLI -> IO ()
-runtime opts = shelly $ verbosely $ do
-  let (path, command, optargs) = mapTriple T.pack
-                               ( cliCompositionDir opts
-                               , cliDcCommand opts
-                               , cliDcOpts opts
-                               )
-   in dm (fromText path) command [optargs]
+runtime opts = shelly $ silently $ do
+  let (path, command, optargs)
+        = ( T.pack $ cliCompositionDir opts
+          , T.pack $ cliDcCommand opts
+          , map T.pack $ cliDcOpts opts
+          )
+   in dm (fromText path) command optargs
 
 parser :: Parser CLI
 parser = CLI
@@ -46,10 +46,10 @@ parser = CLI
       <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array."
       )
   <*> argument str (metavar "COMMAND")
-  <*> argument str
+  <*> some (argument str
       ( metavar "args"
       <> value ""
-      )
+      ))
 
 main :: IO ()
 main = execParser opts >>= runtime
@@ -58,6 +58,3 @@ main = execParser opts >>= runtime
           <> progDesc "Orchestrate your docker-compose"
           <> header "dm - yaml loving docker compose orchestration"
           )
-
-mapTriple :: (a -> b) -> (a, a, a) -> (b, b, b)
-mapTriple f (x,y,z) = (f x, f y, f z)
