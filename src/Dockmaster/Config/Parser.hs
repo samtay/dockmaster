@@ -30,6 +30,8 @@ import Data.Monoid ((<>), mconcat, First(..))
 import Control.Monad (liftM)
 default (T.Text)
 
+---------- dm config functions ----------
+
 -- | Get global dockmaster config
 --
 -- If config.yml fails to parse, returns Left error.
@@ -61,6 +63,8 @@ resolvePath = do
   return $
     getFirst . mconcat $ map First [envPathT >>= (return . fromText), homePath, etcPath]
 
+---------- dm workdir functions ----------
+
 -- | Resolve the appropriate dockmaster workdir.
 --
 -- For example, if @$CWD/dockmaster.yml@ exists, then
@@ -80,8 +84,15 @@ resolvePath = do
 --   (3) @$CWD/deploybot/dockmaster.yml@ does /not/ exist, then
 -- >>> getWorkDir "deploybot"
 -- Right "$HOME/git/deploybot"
+--
+-- TODO Use monad transformers for all Sh (Either a b) types, like a real man
 getWorkDir :: FilePath -> Sh (Either T.Text FilePath)
-getWorkDir p = undefined
+getWorkDir p = do
+  eCfg <- config
+  case eCfg of
+    (Left err)  -> return $ Left err
+    (Right cfg) -> getWorkDir' cfg p
+
 
 -- | Same thing as 'getWorkDir' but uses a 'Config' argument instead of
 -- resolving one.
