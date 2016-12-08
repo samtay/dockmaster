@@ -5,14 +5,14 @@ module Dockmaster
   ( dm
   ) where
 
+-- Base modules
 import Data.Either
 import Data.Monoid ((<>))
 import Data.Maybe
 
 -- Local modules
-import Dockmaster.Locator
 import Dockmaster.Parser
-import Dockmaster.Types
+import Dockmaster.Config.Parser
 
 -- External modules
 import Shelly
@@ -27,6 +27,7 @@ type DCCommand = T.Text
 -- See usage docs for more info. Tries to find a dockmaster.yml file based on
 -- the initial path argument
 -- TODO monad >>= and >> the shit out of this to remove the casing structure
+-- TODO Possibly remove Either return types & just error out whenever
 -- REMEMBER you can do `when weAreDone exitSuccess` as control flow in do statement
 dm :: FilePath -> DCCommand -> [T.Text] -> Sh ()
 dm path command args = do

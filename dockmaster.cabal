@@ -20,11 +20,10 @@ description:
 library
   hs-source-dirs:      src
   exposed-modules:     Dockmaster
-                     , Dockmaster.Types
-                     , Dockmaster.Config.Types
-  other-modules:       Dockmaster.Locator
                      , Dockmaster.Parser
                      , Dockmaster.Config.Parser
+  other-modules:       Dockmaster.Types
+                     , Dockmaster.Config.Types
                      , Dockmaster.Utils
   build-depends:       base >= 4.7 && < 5
                      , yaml
@@ -34,6 +33,7 @@ library
                      , text
                      , bytestring
                      , regex-posix
+                     , system-filepath >= 0.4.7 && < 0.5
   default-language:    Haskell2010
 
 executable dm

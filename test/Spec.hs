@@ -1,11 +1,13 @@
 module Main where
 
 import Data.Yaml
-import Dockmaster.Types
+import Dockmaster.Parser
 import qualified Data.ByteString as BS
 import Data.Maybe
 import System.Exit
 import System.Directory
+
+-- TODO test Dockmaster.Parser.dockmasterYml instead of using this parse function
 
 parseDockmasterYml :: FilePath -> IO Bool
 parseDockmasterYml "."  = return True
