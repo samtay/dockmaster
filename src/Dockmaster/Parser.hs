@@ -6,6 +6,9 @@ module Dockmaster.Parser
   dockmasterYml
   ) where
 
+-- Local modules
+import Dockmaster.Utils (eitherWrap)
+
 -- External modules
 import Data.Yaml
 import Dockmaster.Types
@@ -21,7 +24,3 @@ dockmasterYml = do
   contents <- readBinary "dockmaster.yml"
   return $
     eitherWrap T.pack id (decodeEither contents :: Either String Dockmaster)
-
-eitherWrap :: (a -> b) -> (c -> d) -> Either a c -> Either b d
-eitherWrap f _ (Left a)  = Left $ f a
-eitherWrap _ g (Right c) = Right $ g c
