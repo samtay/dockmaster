@@ -21,8 +21,11 @@ library
   hs-source-dirs:      src
   exposed-modules:     Dockmaster
                      , Dockmaster.Types
+                     , Dockmaster.Config.Types
   other-modules:       Dockmaster.Locator
                      , Dockmaster.Parser
+                     , Dockmaster.Config.Parser
+                     , Dockmaster.Utils
   build-depends:       base >= 4.7 && < 5
                      , yaml
                      , text
