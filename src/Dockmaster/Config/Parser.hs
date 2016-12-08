@@ -16,7 +16,7 @@ import qualified Data.ByteString as BS
 import Shelly
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
-import Data.Monoid ((<>), First(..))
+import Data.Monoid ((<>), mconcat, First(..))
 import Control.Monad (liftM)
 default (T.Text)
 
