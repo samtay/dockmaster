@@ -29,3 +29,15 @@ dockmasterYml = do
   contents <- readBinary "dockmaster.yml"
   return $
     eitherWrap T.pack id (decodeEither contents :: Either String Dockmaster)
+
+-- | Executes specific dc command pre/post hooks around action argument
+-- (action arg is typically docker-compose command)
+hookWrap :: T.Text -> Sh T.Text -> Sh T.Text
+hookWrap dcCmd action = do
+  dmYml <- dockmasterYml
+  either return (\cfg -> hookWrap' cfg dcCmd action) dmYml
+
+hookWrap' :: Dockmaster -> T.Text -> Sh a -> Sh a
+hookWrap' cfg dcCmd action = do
+  let cmdCfg = dmCommands cfg
+  return undefined

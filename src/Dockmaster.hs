@@ -21,8 +21,6 @@ import Prelude hiding (FilePath)
 import qualified Data.Text as T
 default (T.Text)
 
-type DCCommand = T.Text
-
 -- | Runs docker-compose commands against resolved composition locations
 -- See usage docs for more info. Tries to find a dockmaster.yml file based on
 -- the initial path argument
@@ -38,22 +36,16 @@ dm path command args = do
       cd wd
       dmYml <- dockmasterYml
       case dmYml of
-        Left err    -> echo_err err
+        Left err    -> echo_err "Failed to parse dockmaster.yml:\n" >> errorExit err
         Right dmYml -> do
           let targets = map targetName $ dmTargets dmYml -- primitively just grabbing machine name
           (flip mapM_) targets $ \m -> dockermachine m $ do
-            response <- hookWrap command $ dockercompose $ command : args
+            response <- hookWrap' dmYml command $ dockercompose $ command : args
             echo response
-
 
 -- | Run docker-compose command
 dockercompose :: [T.Text] -> Sh T.Text
 dockercompose = run "docker-compose"
-
--- | Executes specific dc command pre/post hooks around action argument
--- (action arg is typically docker-compose command)
-hookWrap :: DCCommand -> Sh a -> Sh a
-hookWrap = undefined
 
 -- | Takes machine name and Sh action, and wraps Sh action in scope of
 -- docker-machine env
