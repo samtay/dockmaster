@@ -26,8 +26,9 @@ import Shelly
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
+import qualified Filesystem as F
 import Data.Monoid ((<>), mconcat, First(..))
-import Control.Monad (liftM)
+import Control.Monad (liftM, liftM2)
 default (T.Text)
 
 ---------- dm config functions ----------
@@ -58,8 +59,8 @@ baseConfig = Config { dmcPaths = [] }
 resolvePath :: Sh (Maybe FilePath)
 resolvePath = do
   envPathT  <- get_env "DOCKMASTER_CONFIG"
-  homePath  <- testM test_e id $ "$HOME" </> ".dockmaster" </> "config.yml"
-  etcPath   <- testM test_e id $ "/etc" </> "dockmaster" </> "config.yml"
+  homePath  <- testM test_e $ getHomeDirectory </>>= ".dockmaster" </> "config.yml"
+  etcPath   <- testM test_e $ return "/etc" </>>= "dockmaster" </> "config.yml"
   return $
     getFirst . mconcat $ map First [envPathT >>= (return . fromText), homePath, etcPath]
 
@@ -93,7 +94,6 @@ getWorkDir p = do
     (Left err)  -> return $ Left err
     (Right cfg) -> getWorkDir' cfg p
 
-
 -- | Same thing as 'getWorkDir' but uses a 'Config' argument instead of
 -- resolving one.
 getWorkDir' :: Config -> FilePath -> Sh (Either T.Text FilePath)
@@ -119,3 +119,15 @@ tryPath dir = do
 -- | Just a small abstraction to keep error message on its own
 workDirNotFound :: Either T.Text b
 workDirNotFound = Left "dockmaster.yml file not found"
+
+-- | Get home directory (in Sh)
+getHomeDirectory :: Sh FilePath
+getHomeDirectory = liftIO F.getHomeDirectory
+
+infixr 4 </>>=
+(</>>=) :: (Monad m) => m FilePath -> FilePath -> m FilePath
+mFp </>>= fp = mFp <</>> (return fp)
+
+infixr 5 <</>>
+(<</>>) :: (Monad m) => m FilePath -> m FilePath -> m FilePath
+(<</>>) = liftM2 (</>)
