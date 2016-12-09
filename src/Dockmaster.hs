@@ -27,7 +27,7 @@ default (T.Text)
 -- TODO monad >>= and >> the shit out of this to remove the casing structure
 -- TODO Possibly remove Either return types & just error out whenever
 -- REMEMBER you can do `when weAreDone exitSuccess` as control flow in do statement
-dm :: FilePath -> DCCommand -> [T.Text] -> Sh ()
+dm :: FilePath -> T.Text -> [T.Text] -> Sh ()
 dm path command args = do
   eWd <- getWorkDir path
   case eWd of

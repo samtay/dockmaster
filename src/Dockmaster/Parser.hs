@@ -3,6 +3,9 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Dockmaster.Parser
   ( dockmasterYml
+  -- * Dockmaster command configuration
+  , hookWrap
+  , hookWrap'
   -- * Re-exported for convenience
   , module Dockmaster.Types
   ) where
@@ -37,6 +40,7 @@ hookWrap dcCmd action = do
   dmYml <- dockmasterYml
   either return (\cfg -> hookWrap' cfg dcCmd action) dmYml
 
+-- | Same thing as 'hookWrap' but accepts 'Dockmaster' config to execute against
 hookWrap' :: Dockmaster -> T.Text -> Sh a -> Sh a
 hookWrap' cfg dcCmd action = do
   let cmdCfg = dmCommands cfg
