@@ -10,7 +10,7 @@ import qualified Data.Text as T
 -- | Dockmaster configuration (specified by dockmaster.yml)
 data Dockmaster = Dockmaster { dmFile   :: Maybe ComposeFile
                              , dmTargets :: [Target]
-                             , dmCommands :: [HashMap T.Text CommandConfig]
+                             , dmCommands :: HashMap T.Text CommandConfig
                              } deriving (Show)
 
 -- | Configuration for docker-compose.yml file template & vars
@@ -60,6 +60,6 @@ instance FromJSON Dockmaster where
   parseJSON (Object v) = Dockmaster
                          <$> v .:?  "file"
                          <*> v .:?  "targets" .!= []
-                         <*> v .:?  "commands" .!= []
+                         <*> v .:?  "commands" .!= mempty
   -- A non-Object value is of the wrong type, so fail.
   parseJSON _ = error "Can't parse Dockmaster from YAML/JSON"
