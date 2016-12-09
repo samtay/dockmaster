@@ -38,14 +38,13 @@ dm path command args = do
       case dmYml of
         Left err    -> echo_err "Failed to parse dockmaster.yml:\n" >> errorExit err
         Right dmYml -> do
-          let targets = map targetName $ dmTargets dmYml -- primitively just grabbing machine name
+          let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
           (flip mapM_) targets $ \m -> dockermachine m $ do
-            response <- hookWrap' dmYml command $ dockercompose $ command : args
-            echo response
+            hookWrap' dmYml command $ dockercompose $ command : args
 
 -- | Run docker-compose command
-dockercompose :: [T.Text] -> Sh T.Text
-dockercompose = run "docker-compose"
+dockercompose :: [T.Text] -> Sh ()
+dockercompose = (print_stdout True) . (run_ "docker-compose")
 
 -- | Takes machine name and Sh action, and wraps Sh action in scope of
 -- docker-machine env
