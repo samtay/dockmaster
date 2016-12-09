@@ -124,10 +124,12 @@ workDirNotFound = Left "dockmaster.yml file not found"
 getHomeDirectory :: Sh FilePath
 getHomeDirectory = liftIO F.getHomeDirectory
 
+-- | Convenience method to append filepaths when one is wrapped in a monad
 infixr 4 </>>=
 (</>>=) :: (Monad m) => m FilePath -> FilePath -> m FilePath
 mFp </>>= fp = mFp <</>> (return fp)
 
+-- | Convenience method to append filepaths when both are wrapped in a monad
 infixr 5 <</>>
 (<</>>) :: (Monad m) => m FilePath -> m FilePath -> m FilePath
 (<</>>) = liftM2 (</>)

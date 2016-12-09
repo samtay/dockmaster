@@ -18,6 +18,7 @@ import qualified Data.Text as T
 
 default (T.Text)
 
+-- | Datatype to hold CLI options/arguments
 data CLI = CLI
   { cliCompositionDir :: String
   , cliVerbose        :: Bool
