@@ -4,6 +4,7 @@ module Dockmaster.Types where
 import Data.Yaml
 import Control.Applicative
 import Data.HashMap.Lazy (HashMap, lookup, member)
+import Data.Monoid (mempty)
 import Prelude hiding (lookup)
 import qualified Data.Text as T
 
