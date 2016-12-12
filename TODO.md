@@ -1,8 +1,7 @@
 # todo
 
 ## mvp
-1. Use COP to generate temporary docker-compose.yml from template/vars
-1. Parse `~` and `$HOME` from config.yml PATHS into actual home directory (Sh FilePath)
+1. Use COP to generate docker-compose.yml and pipe to `docker-compose -f -`
 2. Parse `DOCKMASTER_HOME` from config.yml PATHS into `get_env "DOCKMASTER_HOME" ~> "~/.dockmaster/home" or whatever
 
 ## later
