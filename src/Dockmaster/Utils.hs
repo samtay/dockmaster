@@ -9,6 +9,7 @@ module Dockmaster.Utils
   -- * Sh and FilePath utils
   , getHomeDirectory
   , parsePath
+  , toText
   ) where
 
 import Shelly
