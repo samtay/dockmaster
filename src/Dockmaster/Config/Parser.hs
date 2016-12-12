@@ -17,7 +17,7 @@ module Dockmaster.Config.Parser
 
 -- Local modules
 import Dockmaster.Config.Types
-import Dockmaster.Utils (eitherWrap, testM, getHomeDirectory)
+import Dockmaster.Utils
 
 -- External modules
 import Data.Yaml
@@ -99,6 +99,7 @@ getWorkDir p = do
 getWorkDir' :: Config -> FilePath -> Sh (Either T.Text FilePath)
 getWorkDir' cfg p = do
   -- If absolute path is given, it is the only one attempted
+  path  <- toText p >>= parsePath
   mPath <- getFirst <$> if FP.absolute p
               then tryPath p
               else mconcat <$> mapM tryPath (map (</> p) $ "." : dmcPaths cfg)
