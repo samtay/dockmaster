@@ -44,8 +44,9 @@ config = do
     Nothing     -> return $ Right baseConfig
     (Just path) -> do
       contents <- readBinary path
-      return $
-        eitherWrap T.pack id (decodeEither contents :: Either String Config)
+      case decodeEither contents :: Either String Config of
+        Left err  -> return . Left $ T.pack err
+        Right cfg -> return cfg >>= parseConfig >>= return . Right
 
 -- | Get base config options
 baseConfig :: Config
@@ -63,6 +64,14 @@ resolvePath = do
   etcPath   <- testM test_e $ return "/etc" </>>= "dockmaster" </> "config.yml"
   return $
     getFirst . mconcat $ map First [envPathT >>= (return . fromText), homePath, etcPath]
+
+-- | Parse the paths specified in configuration
+--
+-- This handles in-line evaluation of ~,$HOME,$DOCKMASTER_HOME, etc.
+parseConfig :: Config -> Sh Config
+parseConfig cfg = do
+  parsedPaths <- mapM (\p -> toText p >>= parsePath) (dmcPaths cfg)
+  return $ Config { dmcPaths = parsedPaths }
 
 ---------- dm workdir functions ----------
 
