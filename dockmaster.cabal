@@ -26,15 +26,15 @@ library
                      , Dockmaster.Config.Types
                      , Dockmaster.Utils
   build-depends:       base >= 4.7 && < 5
-                     , yaml
-                     , text
-                     , unordered-containers
-                     , shelly
-                     , text
                      , bytestring
                      , regex-posix
+                     , shelly
+                     , split
                      , system-filepath >= 0.4.7 && < 0.5
                      , system-fileio < 0.4
+                     , text
+                     , unordered-containers
+                     , yaml
   default-language:    Haskell2010
 
 executable dm

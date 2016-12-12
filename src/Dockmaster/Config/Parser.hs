@@ -17,7 +17,7 @@ module Dockmaster.Config.Parser
 
 -- Local modules
 import Dockmaster.Config.Types
-import Dockmaster.Utils (eitherWrap, testM)
+import Dockmaster.Utils (eitherWrap, testM, getHomeDirectory)
 
 -- External modules
 import Data.Yaml
@@ -119,10 +119,6 @@ tryPath dir = do
 -- | Just a small abstraction to keep error message on its own
 workDirNotFound :: Either T.Text b
 workDirNotFound = Left "dockmaster.yml file not found"
-
--- | Get home directory (in Sh)
-getHomeDirectory :: Sh FilePath
-getHomeDirectory = liftIO F.getHomeDirectory
 
 -- | Convenience method to append filepaths when one is wrapped in a monad
 infixr 4 </>>=
