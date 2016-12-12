@@ -109,7 +109,7 @@ getWorkDir' :: Config -> FilePath -> Sh (Either T.Text FilePath)
 getWorkDir' cfg p = do
   -- If absolute path is given, it is the only one attempted
   path  <- toText p >>= parsePath
-  mPath <- getFirst <$> if FP.absolute p
+  mPath <- getFirst <$> if FP.absolute path
               then tryPath p
               else mconcat <$> mapM tryPath (map (</> p) $ "." : dmcPaths cfg)
 
