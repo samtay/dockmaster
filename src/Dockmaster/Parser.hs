@@ -1,3 +1,11 @@
+{-|
+Module      : Dockmaster.Parser
+Description : Parsing dockmaster.yml and utilities around its content
+License     : ASL-2
+Maintainer  : sam.chong.tay@gmail.com
+Stability   : experimental
+Portability : POSIX
+-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -6,8 +14,6 @@ module Dockmaster.Parser
   -- * Dockmaster command configuration
   , hookWrap
   , hookWrap'
-  -- * Re-exported for convenience
-  , module Dockmaster.Types
   ) where
 
 -- Local modules
@@ -25,9 +31,9 @@ import Prelude hiding (FilePath, lookup)
 import qualified Data.Text as T
 default (T.Text)
 
--- | Parse $CWD/dockmaster.yml
+-- | Parse @$CWD/dockmaster.yml@
 --
--- Note this assumes we are already in the correct dockmaster workdir
+-- Note this assumes we are already in the correct dockmaster workdir.
 dockmasterYml :: Sh (Either T.Text Dockmaster)
 dockmasterYml = do
   contents <- readBinary "dockmaster.yml"
@@ -35,7 +41,7 @@ dockmasterYml = do
     eitherWrap T.pack id (decodeEither contents :: Either String Dockmaster)
 
 -- | Executes specific dc command pre/post hooks around action argument
--- (action arg is typically docker-compose command)
+-- (action arg is typically docker-compose command).
 hookWrap :: T.Text -> Sh () -> Sh ()
 hookWrap dcCmd action = do
   dmYml <- dockmasterYml
@@ -44,7 +50,7 @@ hookWrap dcCmd action = do
     (\cfg -> hookWrap' cfg dcCmd action) -- Otherwise execute hooks & docker-compose
     dmYml
 
--- | Same thing as 'hookWrap' but accepts 'Dockmaster' config to execute against
+-- | Same thing as 'hookWrap' but accepts 'Dockmaster' config to execute against.
 hookWrap' :: Dockmaster -> T.Text -> Sh () -> Sh ()
 hookWrap' cfg dcCmd action = do
   -- Gather command configuration hooks/pass-through

@@ -1,3 +1,11 @@
+{-|
+Module      : Dockmaster.Config.Types
+Description : Types and instances for Dockmaster Config
+License     : ASL-2
+Maintainer  : sam.chong.tay@gmail.com
+Stability   : experimental
+Portability : POSIX
+-}
 {-# LANGUAGE OverloadedStrings #-}
 module Dockmaster.Config.Types where
 

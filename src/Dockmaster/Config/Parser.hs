@@ -1,3 +1,11 @@
+{-|
+Module      : Dockmaster.Config.Parser
+Description : Parsing global/user configuration
+License     : ASL-2
+Maintainer  : sam.chong.tay@gmail.com
+Stability   : experimental
+Portability : POSIX
+-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -10,9 +18,6 @@ module Dockmaster.Config.Parser
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
-
-  -- * Re-exported for convenience
-  , module Dockmaster.Config.Types
   ) where
 
 -- Local modules
@@ -35,8 +40,8 @@ default (T.Text)
 
 -- | Get global dockmaster config
 --
--- If config.yml fails to parse, returns Left error.
--- If config.yml is not found, returns Right baseConfig (default configuration).
+-- If @config.yml@ fails to parse, returns a @Left error@.
+-- If @config.yml@ is not found, returns @Right baseConfig@ (default configuration).
 config :: Sh (Either T.Text Config)
 config = do
   mPath <- resolvePath
@@ -52,11 +57,11 @@ config = do
 baseConfig :: Config
 baseConfig = Config { dmcPaths = [] }
 
--- | Resolves path to dockmaster config.yml in the following order of precedence:
+-- | Resolves path to dockmaster @config.yml@ in the following order of precedence:
 --
---     (1) DOCKMASTER_CONFIG environment variable
---     (2) $HOME/.dockmaster/config.yml
---     (3) /etc/dockmaster/config.yml
+--     (1) @DOCKMASTER_CONFIG@ environment variable
+--     (2) @$HOME/.dockmaster/config.yml@
+--     (3) @/etc/dockmaster/config.yml@
 resolvePath :: Sh (Maybe FilePath)
 resolvePath = do
   envPathT  <- get_env "DOCKMASTER_CONFIG"
@@ -67,7 +72,7 @@ resolvePath = do
 
 -- | Parse the paths specified in configuration
 --
--- This handles in-line evaluation of ~,$HOME,$DOCKMASTER_HOME, etc.
+-- This handles in-line evaluation of @~, $HOME, $DOCKMASTER_HOME@, etc.
 parseConfig :: Config -> Sh Config
 parseConfig cfg = do
   parsedPaths <- mapM (\p -> toText p >>= parsePath) (dmcPaths cfg)
@@ -78,10 +83,12 @@ parseConfig cfg = do
 -- | Resolve the appropriate dockmaster workdir.
 --
 -- For example, if @$CWD/dockmaster.yml@ exists, then
+--
 -- >>> getWorkDir "."
 -- Right "."
 --
 -- If @$CWD/dockmaster.yml@ does /not/ exist, then
+--
 -- >>> getWorkDir "."
 -- Left "dockmaster.yml file not found"
 --
@@ -89,13 +96,12 @@ parseConfig cfg = do
 -- composition listing directories, if any are specified by global config.
 -- For example, if:
 --
---   (1) @$HOME/git@ is a PATH specified in global config.yml
---   (2) @$HOME/git/deploybot/dockmaster.yml@ exists
---   (3) @$CWD/deploybot/dockmaster.yml@ does /not/ exist, then
+--   (1) @$HOME/git@ is a @PATH@ specified in global @config.yml@
+--   (2) @$HOME\/git\/deploybot/dockmaster.yml@ exists
+--   (3) @$CWD\/deploybot\/dockmaster.yml@ does /not/ exist, then
+--
 -- >>> getWorkDir "deploybot"
 -- Right "$HOME/git/deploybot"
---
--- TODO Use monad transformers for all Sh (Either a b) types, like a real man
 getWorkDir :: FilePath -> Sh (Either T.Text FilePath)
 getWorkDir p = do
   eCfg <- config

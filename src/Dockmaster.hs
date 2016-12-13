@@ -1,8 +1,24 @@
+{-|
+Module      : Dockmaster
+Description : Runtime execution
+License     : ASL-2
+Maintainer  : sam.chong.tay@gmail.com
+Stability   : experimental
+Portability : POSIX
+-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Dockmaster
-  ( dm
+  (
+  -- * Runtime execution
+    dm
+  -- * dockmaster.yml
+  , module Dockmaster.Types
+  , module Dockmaster.Parser
+  -- * config.yml
+  , module Dockmaster.Config.Types
+  , module Dockmaster.Config.Parser
   ) where
 
 -- Base modules
@@ -11,6 +27,8 @@ import Data.Monoid ((<>))
 import Data.Maybe
 
 -- Local modules
+import Dockmaster.Types
+import Dockmaster.Config.Types
 import Dockmaster.Parser
 import Dockmaster.Config.Parser
 import Dockmaster.Compose
@@ -22,12 +40,9 @@ import Prelude hiding (FilePath)
 import qualified Data.Text as T
 default (T.Text)
 
--- | Runs docker-compose commands against resolved composition locations
--- See usage docs for more info. Tries to find a dockmaster.yml file based on
+-- | Runs @docker-compose@ commands against resolved composition locations
+-- See usage docs for more info. Tries to find a @dockmaster.yml@ file based on
 -- the initial path argument
--- TODO monad >>= and >> the shit out of this to remove the casing structure
--- TODO Possibly remove Either return types & just error out whenever
--- REMEMBER you can do `when weAreDone exitSuccess` as control flow in do statement
 dm :: FilePath -> T.Text -> [T.Text] -> Sh ()
 dm path command args = do
   eWd <- getWorkDir path
@@ -43,8 +58,8 @@ dm path command args = do
           (flip mapM_) targets $ \m -> dockermachine m $ do
             hookWrap' dmYml command $ dockercompose dmYml $ command : args
 
--- | Takes machine name and Sh action, and wraps Sh action in scope of
--- docker-machine env
+-- | Takes machine name and 'Sh' action, and wraps 'Sh' action in scope of
+-- @docker-machine@ env
 dockermachine :: T.Text -> Sh a -> Sh a
 dockermachine m action = sub $ do
   envvars <- run "docker-machine" ["env", m]
@@ -52,9 +67,8 @@ dockermachine m action = sub $ do
     $ pairEnvvars $ T.unpack envvars
   action
 
--- | Accept a string of possibly many export VAR=VAL statements
--- and return the (VAR,VAL) pairs
--- TODO: Use a parser (idiomatic haskell) over regex !!!
+-- | Accept a string of possibly many export @VAR=VAL@ statements
+-- and return the @(VAR,VAL)@ pairs
 pairEnvvars :: String -> [(String,String)]
 pairEnvvars ls = mapMaybe match $ lines ls
   where match :: String -> Maybe (String,String)
@@ -62,7 +76,7 @@ pairEnvvars ls = mapMaybe match $ lines ls
                     [[_,var,val]] -> Just (var, val)
                     _             -> Nothing
 
--- | Regex pattern for matching docker-machine env output
+-- | Regex pattern for matching @docker-machine@ env output
 exportPattern :: String
 exportPattern = "export ([A-Za-z0-9_]+)=\"(.*)\""
 

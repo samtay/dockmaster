@@ -1,8 +1,8 @@
 name:                dockmaster
 version:             0.1.0.0
-synopsis:            provide configurable functionality around docker-compose
+synopsis:            yaml loving docker-compose orchestration
 homepage:            https://github.com/SamTay/dockmaster#readme
-license:             BSD3
+license:             ASL-2
 license-file:        LICENSE
 author:              Sam Tay
 maintainer:          sam.chong.tay@gmail.com
@@ -20,11 +20,11 @@ description:
 library
   hs-source-dirs:      src
   exposed-modules:     Dockmaster
-                     , Dockmaster.Parser
+  other-modules:       Dockmaster.Compose
                      , Dockmaster.Config.Parser
-  other-modules:       Dockmaster.Types
                      , Dockmaster.Config.Types
-                     , Dockmaster.Compose
+                     , Dockmaster.Parser
+                     , Dockmaster.Types
                      , Dockmaster.Utils
   build-depends:       base >= 4.7 && < 5
                      , bytestring

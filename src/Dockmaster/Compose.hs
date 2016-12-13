@@ -1,3 +1,11 @@
+{-|
+Module      : Dockmaster.Compose
+Description : Executing docker-compose with possibly COP templated content
+License     : ASL-2
+Maintainer  : sam.chong.tay@gmail.com
+Stability   : experimental
+Portability : POSIX
+-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
