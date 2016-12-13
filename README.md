@@ -18,16 +18,16 @@ Dockmaster was built for convenience. Some of these conveniences are:
 
  ```yaml
  commands:
-   - up:
-       pre_hooks:
-         - file: relative_path/to/hook.sh
-         - file: /absolute/path/to/hook.sh
-         - shell: rm -rf .working
-   - wiggle:
-       compose: false
-       # ^^^ does not call docker-compose between pre- and post- hooks.
-       pre_hooks:
-         - file: wiggle.sh
+   up:
+     pre_hooks:
+       - file: relative_path/to/hook.sh
+       - file: /absolute/path/to/hook.sh
+       - shell: rm -rf .working
+   wiggle:
+     compose: false
+     # ^^^ does not call docker-compose between pre- and post- hooks.
+     pre_hooks:
+       - file: wiggle.sh
  ```
 - **templating**: template your docker-compose files to reuse common patterns
 
