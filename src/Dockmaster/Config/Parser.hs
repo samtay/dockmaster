@@ -92,7 +92,7 @@ parseConfig cfg = do
 -- >>> getWorkDir "."
 -- Left "dockmaster.yml file not found"
 --
--- This function will also try to resolve relative paths against the 'dmcPath'
+-- This function will also try to resolve relative paths against the 'dmcPaths'
 -- composition listing directories, if any are specified by global config.
 -- For example, if:
 --
