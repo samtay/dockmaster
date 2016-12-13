@@ -33,7 +33,7 @@ dockercompose cfg optargs = print_stdout True $ maybe
 -- https://hackage.haskell.org/package/shelly-1.6.8.1/docs/Shelly.html#v:-45--124--45-
 composeViaTemplate :: [T.Text] -> ComposeFile -> Sh ()
 composeViaTemplate optargs cf =
-  compileTemplate cf -|- run_ "docker-compose" (optargs ++ ["-f", "-"])
+  compileTemplate cf -|- run_ "docker-compose" ("-f" : "-" : optargs)
 
 -- | Leverages @cop@ to build docker-compose.yml content from template/vars
 --
