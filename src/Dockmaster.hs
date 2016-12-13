@@ -13,6 +13,7 @@ import Data.Maybe
 -- Local modules
 import Dockmaster.Parser
 import Dockmaster.Config.Parser
+import Dockmaster.Compose
 
 -- External modules
 import Shelly
@@ -40,11 +41,7 @@ dm path command args = do
         Right dmYml -> do
           let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
           (flip mapM_) targets $ \m -> dockermachine m $ do
-            hookWrap' dmYml command $ dockercompose $ command : args
-
--- | Run docker-compose command
-dockercompose :: [T.Text] -> Sh ()
-dockercompose = (print_stdout True) . (run_ "docker-compose")
+            hookWrap' dmYml command $ dockercompose dmYml $ command : args
 
 -- | Takes machine name and Sh action, and wraps Sh action in scope of
 -- docker-machine env

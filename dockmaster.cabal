@@ -24,6 +24,7 @@ library
                      , Dockmaster.Config.Parser
   other-modules:       Dockmaster.Types
                      , Dockmaster.Config.Types
+                     , Dockmaster.Compose
                      , Dockmaster.Utils
   build-depends:       base >= 4.7 && < 5
                      , bytestring

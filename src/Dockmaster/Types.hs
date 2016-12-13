@@ -1,11 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Dockmaster.Types where
 
+import Dockmaster.Config.Types
+
 import Data.Yaml
 import Control.Applicative
 import Data.HashMap.Lazy (HashMap, lookup, member)
 import Data.Monoid (mempty)
-import Prelude hiding (lookup)
+import Shelly
+import Prelude hiding (lookup, FilePath)
 import qualified Data.Text as T
 
 -- | Dockmaster configuration (specified by dockmaster.yml)
@@ -15,8 +18,8 @@ data Dockmaster = Dockmaster { dmFile   :: Maybe ComposeFile
                              } deriving (Show)
 
 -- | Configuration for docker-compose.yml file template & vars
-data ComposeFile = ComposeFile { cfPath :: Maybe T.Text
-                               , cfConfig :: [T.Text]
+data ComposeFile = ComposeFile { cfPath :: FilePath
+                               , cfVars :: [FilePath]
                                } deriving (Show)
 
 -- | Targets are used to identify where compositions are run
@@ -36,7 +39,7 @@ data CommandConfig = CommandConfig { ccCompose :: Bool
 
 instance FromJSON ComposeFile where
   parseJSON (Object v) = ComposeFile
-                         <$> v .:? "path"
+                         <$> v .: "path"
                          <*> v .:? "config" .!= []
 
 instance FromJSON Target where
