@@ -16,6 +16,7 @@ module Dockmaster
   -- * dockmaster.yml
   , module Dockmaster.Types
   , module Dockmaster.Parser
+  , module Dockmaster.Compose
   -- * config.yml
   , module Dockmaster.Config.Types
   , module Dockmaster.Config.Parser

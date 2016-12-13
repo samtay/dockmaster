@@ -75,6 +75,11 @@ hookWrap :: Text -> Sh () -> Sh ()
 --   execute against.
 hookWrap' :: Dockmaster -> Text -> Sh () -> Sh ()
 
+-- | Runs <tt>docker-compose</tt> but uses compiled
+--   <tt>docker-compose.yml</tt> file if template/vars are specified in
+--   <tt>dockmaster.yml</tt>.
+dockercompose :: Dockmaster -> [Text] -> Sh ()
+
 -- | Dockmaster configuration
 data Config
 Config :: [FilePath] -> Config
