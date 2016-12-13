@@ -27,10 +27,6 @@ dockercompose cfg optargs = print_stdout True $ maybe
 
 -- | Uses 'ComposeFile' argument to build templated docker-compose.yml content
 -- and pipes it directly to docker-compose
---
--- TODO make sure the pipe doesnt output garbage
--- If we need shell-level pipe this is possible:
--- https://hackage.haskell.org/package/shelly-1.6.8.1/docs/Shelly.html#v:-45--124--45-
 composeViaTemplate :: [T.Text] -> ComposeFile -> Sh ()
 composeViaTemplate optargs cf =
   compileTemplate cf -|- run_ "docker-compose" ("-f" : "-" : optargs)
