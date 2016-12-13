@@ -10,7 +10,7 @@ window.onload = function () {pageLoad();setSynopsis("mini_Dockmaster.html");};
 </code></strong>Right &quot;.&quot;
 </pre><p>If <code>$CWD/dockmaster.yml</code> does <em>not</em> exist, then</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>getWorkDir &quot;.&quot;
 </code></strong>Left &quot;dockmaster.yml file not found&quot;
-</pre><p>This function will also try to resolve relative paths against the <code>dmcPath</code>
+</pre><p>This function will also try to resolve relative paths against the <code><a href="Dockmaster.html#v:dmcPaths">dmcPaths</a></code>
  composition listing directories, if any are specified by global config.
  For example, if:</p><ol><li><code>$HOME/git</code> is a <code>PATH</code> specified in global <code>config.yml</code></li><li><code>$HOME/git/deploybot/dockmaster.yml</code> exists</li><li><code>$CWD/deploybot/dockmaster.yml</code> does <em>not</em> exist, then</li></ol><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>getWorkDir &quot;deploybot&quot;
 </code></strong>Right &quot;$HOME/git/deploybot&quot;

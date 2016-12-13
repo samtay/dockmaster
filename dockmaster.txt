@@ -117,7 +117,7 @@ baseConfig :: Config
 --   </pre>
 --   
 --   This function will also try to resolve relative paths against the
---   <tt>dmcPath</tt> composition listing directories, if any are specified
+--   <a>dmcPaths</a> composition listing directories, if any are specified
 --   by global config. For example, if:
 --   
 --   <ol>
