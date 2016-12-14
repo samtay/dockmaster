@@ -1,7 +1,7 @@
 module Main where
 
 import Data.Yaml
-import Dockmaster.Parser
+import Dockmaster
 import qualified Data.ByteString as BS
 import Data.Maybe
 import System.Exit
