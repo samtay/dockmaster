@@ -33,7 +33,6 @@ import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
 import Data.Monoid ((<>), mconcat, First(..))
-import Control.Monad (liftM, liftM2)
 default (T.Text)
 
 ---------- dm config functions ----------
@@ -135,13 +134,3 @@ tryPath dir = do
 -- | Just a small abstraction to keep error message on its own
 workDirNotFound :: Either T.Text b
 workDirNotFound = Left "dockmaster.yml file not found"
-
--- | Convenience method to append filepaths when one is wrapped in a monad
-infixr 4 </>>=
-(</>>=) :: (Monad m) => m FilePath -> FilePath -> m FilePath
-mFp </>>= fp = mFp <</>> (return fp)
-
--- | Convenience method to append filepaths when both are wrapped in a monad
-infixr 5 <</>>
-(<</>>) :: (Monad m) => m FilePath -> m FilePath -> m FilePath
-(<</>>) = liftM2 (</>)

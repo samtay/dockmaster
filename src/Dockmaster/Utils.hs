@@ -18,9 +18,12 @@ module Dockmaster.Utils
   , getHomeDirectory
   , parsePath
   , toText
+  , (</>>=)
+  , (<</>>)
   ) where
 
 import Shelly
+import Control.Monad (liftM, liftM2)
 import Prelude hiding (FilePath)
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
@@ -44,7 +47,7 @@ testM predM mx = do
   return $ if test then Just x else Nothing
 
 -- | Accepts a path as 'Text' and returns a 'FilePath' path but with
--- @~@ and @$HOME@ replaced with user home directory
+-- @~@ and @$HOME@ replaced with user home directory, and
 -- @$DOCKMASTER_HOME@ replaced with either env variable value
 -- or defaults to @~/.dockmaster@
 parsePath :: T.Text -> Sh FilePath
@@ -63,13 +66,28 @@ toText fp = case FP.toText fp of
     Left err   -> errorExit err
     Right path -> return path
 
--- | Get home directory (in Sh)
+-- | Get home directory
 getHomeDirectory :: Sh FilePath
 getHomeDirectory = liftIO F.getHomeDirectory
 
--- | Get DM home directory (in Sh)
--- TODO !!!
+-- | Get dockmaster home directory
+--
+-- Prefers @DOCKMASTER_HOME@ environment variable if set, otherwise defaults
+-- to @~/.dockmaster@.
 getDmHomeDirectory :: Sh FilePath
 getDmHomeDirectory = do
-  home <- getHomeDirectory
-  return $ FP.concat [home, fromText ".dockmaster"]
+  envDir <- get_env "DOCKMASTER_HOME"
+  maybe
+    (getHomeDirectory </>>= ".dockmaster")
+    (return . fromText)
+    envDir
+
+-- | Convenience method to append filepaths when one is wrapped in a monad
+infixr 4 </>>=
+(</>>=) :: (Monad m) => m FilePath -> FilePath -> m FilePath
+mFp </>>= fp = mFp <</>> (return fp)
+
+-- | Convenience method to append filepaths when both are wrapped in a monad
+infixr 5 <</>>
+(<</>>) :: (Monad m) => m FilePath -> m FilePath -> m FilePath
+(<</>>) = liftM2 (</>)
