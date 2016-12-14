@@ -68,8 +68,12 @@ parser defaultCompDir = Dm
       ( long "verbose"
       <> short 'v'
       <> help "Verbose output flag" )
-  <*> argument str (metavar "COMMAND")
-  <*> many (argument str (metavar "args"))
+  <*> argument str
+      ( metavar "COMMAND"
+      <> help "Command to forward to docker-compose")
+  <*> many (argument str
+      ( metavar "ARGS"
+      <> help "Any arguments/options to forward to docker-compose COMMAND"))
 
 -- | Generate 'ParserInfo' 'Dm'.
 -- Takes a string argument as the default composition value
