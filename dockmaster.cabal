@@ -2,7 +2,7 @@ name:                dockmaster
 version:             0.1.0.0
 synopsis:            yaml loving docker-compose orchestration
 homepage:            https://github.com/SamTay/dockmaster#readme
-license:             ASL-2
+license:             Apache-2.0
 license-file:        LICENSE
 author:              Sam Tay
 maintainer:          sam.chong.tay@gmail.com
