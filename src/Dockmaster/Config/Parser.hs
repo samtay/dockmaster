@@ -28,7 +28,7 @@ import Dockmaster.Utils
 import Data.Yaml
 import qualified Data.ByteString as BS
 import Shelly
-import Prelude hiding (FilePath)
+import Prelude hiding (FilePath, log)
 import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
@@ -125,11 +125,11 @@ getWorkDir' cfg p = do
 -- Using the @First@ monoid so we can have precedence for composition listings
 tryPath :: FilePath -> Sh (First FilePath)
 tryPath dir = do
+  log "Looking in directory " >> toText dir >>= log
   found <- test_e (dir </> "dockmaster.yml")
   return . First $ if found
      then Just dir
      else Nothing
-
 
 -- | Just a small abstraction to keep error message on its own
 workDirNotFound :: Either T.Text b

@@ -18,13 +18,14 @@ module Dockmaster.Utils
   , getHomeDirectory
   , parsePath
   , toText
+  , log
   , (</>>=)
   , (<</>>)
   ) where
 
 import Shelly
 import Control.Monad (liftM, liftM2)
-import Prelude hiding (FilePath)
+import Prelude hiding (FilePath, log)
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
 import qualified Data.Text as T
@@ -45,6 +46,13 @@ testM predM mx = do
   test <- mx >>= predM
   x <- mx
   return $ if test then Just x else Nothing
+
+-- | Log messages to stdout (only logs when verbose is set)
+--
+-- Unfortunately 'Shelly.trace' will only output text on failure,
+-- and 'Shelly.echo' prints stdout regardless of verbosity
+log :: T.Text -> Sh ()
+log msg = print_commands False $ run_ "echo" [msg]
 
 -- | Accepts a path as 'Text' and returns a 'FilePath' path but with
 -- @~@ and @$HOME@ replaced with user home directory, and
