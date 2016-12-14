@@ -18,12 +18,12 @@ import qualified Data.Text as T
 
 default (T.Text)
 
--- | Datatype to hold CLI options/arguments
-data CLI = CLI
-  { cliCompositionDir :: String
-  , cliVerbose        :: Bool
-  , cliDcCommand      :: String
-  , cliDcOpts         :: [String]
+-- | Datatype to hold cli options/arguments
+data Dm = Dm
+  { dmCompositionDir :: String
+  , dmVerbose        :: Bool
+  , dmDcCommand      :: String
+  , dmDcOpts         :: [String]
   } deriving (Eq,Show)
 
 -- | Main runtime
@@ -35,14 +35,15 @@ main = do
   let defaultCompDir = maybe "." T.unpack envCompDir
    in execParser (opts defaultCompDir) >>= runtime
 
--- | Runtime execution (executed in shell monad Sh, lifted to IO)
--- Accepts CLI instance and forwards to Dockmaster.dm function
-runtime :: CLI -> IO ()
-runtime opts = shelly $ (subVerbosity $ cliVerbose opts) $ do
+-- | Runtime execution
+--
+-- Accepts 'Dm' instance and forwards to 'dm' function
+runtime :: Dm -> IO ()
+runtime opts = shelly $ (subVerbosity $ dmVerbose opts) $ do
   let (path, command, optargs)
-        = ( T.pack $ cliCompositionDir opts
-          , T.pack $ cliDcCommand opts
-          , map T.pack $ cliDcOpts opts
+        = ( T.pack $ dmCompositionDir opts
+          , T.pack $ dmDcCommand opts
+          , map T.pack $ dmDcOpts opts
           )
    in dm (fromText path) command optargs
 
@@ -52,10 +53,10 @@ subVerbosity :: Bool -> Sh a -> Sh a
 subVerbosity v =
   (print_stdout v) . (print_stderr v) . (print_commands v)
 
--- | Parser for CLI opts/args.
+-- | Parser for 'Dm' opts/args.
 -- Takes a string argument as the default composition value
-parser :: String -> Parser CLI
-parser defaultCompDir = CLI
+parser :: String -> Parser Dm
+parser defaultCompDir = Dm
   <$> strOption
       ( long "composition"
       <> short 'c'
@@ -70,9 +71,9 @@ parser defaultCompDir = CLI
   <*> argument str (metavar "COMMAND")
   <*> many (argument str (metavar "args"))
 
--- | Generate ParserInfo CLI.
+-- | Generate 'ParserInfo' 'Dm'.
 -- Takes a string argument as the default composition value
-opts :: String -> ParserInfo CLI
+opts :: String -> ParserInfo Dm
 opts defaultCompDir = info (helper <*> parser defaultCompDir)
   (  fullDesc
   <> progDesc "Orchestrate your docker-compose"
