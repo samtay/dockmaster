@@ -125,7 +125,7 @@ getWorkDir' cfg p = do
 -- Using the @First@ monoid so we can have precedence for composition listings
 tryPath :: FilePath -> Sh (First FilePath)
 tryPath dir = do
-  log "Looking in directory " >> toText dir >>= log
+  toText dir >>= \s -> log $ "Looking in directory " `T.append` s
   found <- test_e (dir </> "dockmaster.yml")
   return . First $ if found
      then Just dir
