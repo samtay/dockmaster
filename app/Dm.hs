@@ -5,6 +5,7 @@ module Main where
 
 -- Local packages
 import Dockmaster
+import Options.Utils
 
 -- External packages
 import Shelly
@@ -79,15 +80,3 @@ opts defaultCompDir = info (helper <*> parser defaultCompDir)
   <> progDesc "Orchestrate your docker-compose"
   <> header "dm - yaml loving docker compose orchestration"
   )
-
--- | 'Text' option
-textOption :: Mod OptionFields String -> Parser T.Text
-textOption = fmap T.pack . strOption
-
--- | 'Text' argument type
-text :: ReadM T.Text
-text = str >>= return . T.pack
-
--- | 'FilePath' option
-filePathOption :: Mod OptionFields String -> Parser FilePath
-filePathOption = fmap fromText . textOption

@@ -5,6 +5,7 @@ module Main where
 
 -- Local packages
 import Dockmaster
+import Options.Utils
 
 -- External packages
 import Shelly hiding (command)
