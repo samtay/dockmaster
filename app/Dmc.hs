@@ -10,6 +10,7 @@ import Options.Utils
 -- External packages
 import Shelly hiding (command)
 import Options.Applicative
+import Data.Either.Combinators
 
 -- Base packages
 import Prelude hiding (FilePath)
@@ -30,13 +31,13 @@ data Dmc
 
 -- | Arguments necessary for setting value
 data SetOptions = SetOptions
-  { sName  :: String
-  , sValue :: String
+  { sName  :: T.Text
+  , sValue :: T.Text
   } deriving (Eq, Show)
 
 -- | Arguments necessary for getting value or shifting/popping array
 data GetOptions = GetOptions
-  { gName  :: String
+  { gName  :: T.Text
   } deriving (Eq, Show)
 
 -- | Main runtime
@@ -45,27 +46,41 @@ main = execParser opts >>= shelly . runtime
 
 -- | Runtime shell execution
 runtime :: Dmc -> Sh ()
-runtime opts = undefined
+runtime = undefined
+
+anyfield :: ReadM T.Text
+anyfield = eitherReader inConfig
+
+arrfield :: ReadM T.Text
+arrfield = eitherReader inConfigArr
+
+inConfig :: String -> Either String T.Text
+inConfig "PATHS" = Right "PATHS"
+inConfig arg     = Left $ arg ++ " is not a valid config field."
+
+inConfigArr :: String -> Either String T.Text
+inConfigArr "PATHS" = Right "PATHS"
+inConfigArr arg     = Left $ fromLeft (arg ++ " is not an array type.") (inConfig arg)
 
 -- | Parser for /set/ commands
-setOptions :: Parser SetOptions
-setOptions = SetOptions
-  <$> argument str (metavar "NAME" <> help "Name of the setting to modify")
-  <*> argument str (metavar "VALUE" <> help "Value to add/set")
+setOptions :: ReadM T.Text -> Parser SetOptions
+setOptions optType = SetOptions
+  <$> argument optType (metavar "NAME" <> help "Name of the setting to modify")
+  <*> argument text (metavar "VALUE" <> help "Value to add/set")
 
 -- | Parser for /get/ commands
 getOptions :: Parser GetOptions
 getOptions = GetOptions
-  <$> argument str (metavar "NAME" <> help "Name of the setting to retrieve")
+  <$> argument anyfield (metavar "NAME" <> help "Name of the setting to retrieve")
 
 -- | Parser for 'Dmc'.
 parser :: Parser Dmc
 parser = subparser
-  (  (command "set" $ commandInfo (Set <$> setOptions) "Set value")
+  (  (command "set" $ commandInfo (Set <$> setOptions anyfield) "Set value")
   <> (command "get" $ commandInfo (Get <$> getOptions) "Get value")
-  <> (command "unshift" $ commandInfo (Unshift <$> setOptions) "Unshift value (for arrays)")
+  <> (command "unshift" $ commandInfo (Unshift <$> setOptions arrfield) "Unshift value (for arrays)")
   <> (command "shift" $ commandInfo (Shift <$> getOptions) "Shift value (for arrays)")
-  <> (command "push" $ commandInfo (Push <$> setOptions) "Push value (for arrays)")
+  <> (command "push" $ commandInfo (Push <$> setOptions arrfield) "Push value (for arrays)")
   <> (command "pop" $ commandInfo (Pop <$> getOptions) "Pop value (for arrays)")
   ) 
 
