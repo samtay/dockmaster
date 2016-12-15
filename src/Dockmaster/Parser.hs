@@ -17,7 +17,6 @@ module Dockmaster.Parser
   ) where
 
 -- Local modules
-import Dockmaster.Utils (eitherWrap)
 import Dockmaster.Config.Parser
 import Dockmaster.Types
 
@@ -25,6 +24,7 @@ import Dockmaster.Types
 import Data.Yaml
 import qualified Data.ByteString as BS
 import Data.HashMap.Lazy (HashMap, lookup, member)
+import Data.Either.Combinators (mapBoth)
 import Data.Monoid ((<>), mconcat, First(..))
 import Shelly
 import Prelude hiding (FilePath, lookup)
@@ -38,7 +38,7 @@ dockmasterYml :: Sh (Either T.Text Dockmaster)
 dockmasterYml = do
   contents <- readBinary "dockmaster.yml"
   return $
-    eitherWrap T.pack id (decodeEither contents :: Either String Dockmaster)
+    mapBoth T.pack id (decodeEither contents :: Either String Dockmaster)
 
 -- | Executes specific dc command pre/post hooks around action argument
 -- (action arg is typically docker-compose command).

@@ -12,8 +12,7 @@ Portability : POSIX
 module Dockmaster.Utils
   (
   -- * Utility methods for common types
-    eitherWrap
-  , testM
+    testM
   -- * Sh and FilePath utils
   , getHomeDirectory
   , parsePath
@@ -30,13 +29,6 @@ import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
 import qualified Data.Text as T
 default (T.Text)
-
--- | Basically fmap over Either, but allow two functions for each L/R side
---
--- Used for text packing on the error
-eitherWrap :: (a -> b) -> (c -> d) -> Either a c -> Either b d
-eitherWrap f _ (Left a)  = Left $ f a
-eitherWrap _ g (Right c) = Right $ g c
 
 -- | Just a contrived predicate for returning a maybe value within monad context
 --
