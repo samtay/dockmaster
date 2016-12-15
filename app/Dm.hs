@@ -20,10 +20,10 @@ default (T.Text)
 
 -- | Datatype to hold cli options/arguments
 data Dm = Dm
-  { dmCompositionDir :: String
+  { dmCompositionDir :: FilePath
   , dmVerbose        :: Bool
-  , dmDcCommand      :: String
-  , dmDcOpts         :: [String]
+  , dmDcCommand      :: T.Text
+  , dmDcOpts         :: [T.Text]
   } deriving (Eq,Show)
 
 -- | Main runtime
@@ -40,12 +40,8 @@ main = do
 -- Accepts 'Dm' instance and forwards to 'dm' function
 runtime :: Dm -> IO ()
 runtime opts = shelly $ (subVerbosity $ dmVerbose opts) $ do
-  let (path, command, optargs)
-        = ( T.pack $ dmCompositionDir opts
-          , T.pack $ dmDcCommand opts
-          , map T.pack $ dmDcOpts opts
-          )
-   in dm (fromText path) command optargs
+  let (Dm path _ command optargs) = opts
+   in dm path command optargs
 
 -- | Accepts a verbosity setting for the subshell
 -- Propogates verbosity to printing options for commands, stdout, stderr
@@ -57,7 +53,7 @@ subVerbosity v =
 -- Takes a string argument as the default composition value
 parser :: String -> Parser Dm
 parser defaultCompDir = Dm
-  <$> strOption
+  <$> filePathOption
       ( long "composition"
       <> short 'c'
       <> metavar "PATH"
@@ -68,10 +64,10 @@ parser defaultCompDir = Dm
       ( long "verbose"
       <> short 'v'
       <> help "Verbose output flag" )
-  <*> argument str
+  <*> argument text
       ( metavar "COMMAND"
       <> help "Command to forward to docker-compose")
-  <*> many (argument str
+  <*> many (argument text
       ( metavar "ARGS"
       <> help "Any arguments/options to forward to docker-compose COMMAND"))
 
@@ -83,3 +79,15 @@ opts defaultCompDir = info (helper <*> parser defaultCompDir)
   <> progDesc "Orchestrate your docker-compose"
   <> header "dm - yaml loving docker compose orchestration"
   )
+
+-- | 'Text' option
+textOption :: Mod OptionFields String -> Parser T.Text
+textOption = fmap T.pack . strOption
+
+-- | 'Text' argument type
+text :: ReadM T.Text
+text = str >>= return . T.pack
+
+-- | 'FilePath' option
+filePathOption :: Mod OptionFields String -> Parser FilePath
+filePathOption = fmap fromText . textOption
