@@ -40,7 +40,7 @@ main = do
 --
 -- Accepts 'Dm' instance and forwards to 'dm' function
 runtime :: Dm -> IO ()
-runtime opts = shelly $ (subVerbosity $ dmVerbose opts) $ do
+runtime opts = shelly $ (escaping False) . (subVerbosity $ dmVerbose opts) $ do
   let (Dm path _ command optargs) = opts
    in dm path command optargs
 
