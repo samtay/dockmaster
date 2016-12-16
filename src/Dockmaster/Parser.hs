@@ -57,7 +57,7 @@ hookWrap' cfg dcCmd action = do
   let cmdCfg = lookup dcCmd $ dmCommands cfg
       pre    = maybe [] ccPreHooks cmdCfg
       post   = maybe [] ccPostHooks cmdCfg
-      pass   = maybe True ccCompose cmdCfg
+      pass   = maybe True ccRunCompose cmdCfg
   mapM_ execHook pre  -- Exec pre hooks
   when pass action    -- Exec docker-compose (unless pass-through = false)
   mapM_ execHook post -- Exec post hooks

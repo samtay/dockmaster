@@ -14,48 +14,96 @@ import Dockmaster.Config.Types
 import Data.Yaml
 import Control.Applicative
 import Data.HashMap.Lazy (HashMap, lookup, member)
-import Data.Monoid (mempty)
+import Data.Monoid
 import Shelly
 import Prelude hiding (lookup, FilePath)
 import qualified Data.Text as T
 
 -- | Dockmaster configuration (specified by dockmaster.yml)
-data Dockmaster = Dockmaster { dmFile   :: Maybe ComposeFile
-                             , dmTargets :: [Target]
-                             , dmCommands :: HashMap T.Text CommandConfig
-                             } deriving (Show)
+data Dockmaster = Dockmaster
+  { dmCompose  :: ComposeConfig
+  , dmEnv      :: EnvConfig
+  , dmTargets  :: [Target]
+  , dmCommands :: HashMap T.Text CommandConfig
+  } deriving (Show,Eq)
 
--- | Configuration for @docker-compose.yml@ file template & vars.
-data ComposeFile = ComposeFile { cfPath :: FilePath
-                               , cfVars :: [FilePath]
-                               } deriving (Show)
+-- | Configuration for @docker-compose.yml@ arguments.
+data ComposeConfig = ComposeConfig
+  { dcFiles     :: [ComposeFile]
+  , dcFlags     :: [T.Text]
+  } deriving (Show,Eq)
+
+-- | Configuration for docker-compose compose file construction.
+data ComposeFile = ComposeFile
+  { cfPath     :: FilePath
+  , cfTemplate :: Bool
+  , cfConfig   :: [FilePath]
+  } deriving (Show,Eq)
+
+-- | Global environment variables for dockmaster execution.
+data EnvConfig = EnvConfig
+  { ecFiles :: [FilePath] 
+  , ecVars  :: HashMap T.Text T.Text
+  } deriving (Show,Eq)
 
 -- | Targets are used to identify where compositions are run.
-data Target = Target { targetName    :: T.Text
-                     , targetType    :: T.Text
-                     , targetMachine :: Maybe T.Text
-                     } deriving (Show)
+data Target = Target
+  { targetName    :: T.Text
+  , targetType    :: T.Text
+  , targetMachine :: Maybe T.Text
+  } deriving (Show,Eq)
 
 -- | Hooks can be specified by filename or direct shell command.
-data Hook = File T.Text | Shell T.Text deriving (Show)
+data Hook = File T.Text | Shell T.Text deriving (Show,Eq)
 
 -- | Configuration for each command.
-data CommandConfig = CommandConfig { ccCompose :: Bool
-                                   , ccPreHooks :: [Hook]
-                                   , ccPostHooks :: [Hook]
-                                   } deriving (Show)
+data CommandConfig = CommandConfig
+  { ccRunCompose :: Bool
+  , ccPreHooks   :: [Hook]
+  , ccPostHooks  :: [Hook]
+  } deriving (Show,Eq)
 
 -- | 'FromJSON' instance for 'ComposeFile'
 instance FromJSON ComposeFile where
   parseJSON (Object v) = ComposeFile
-                         <$> v .: "path"
-                         <*> v .:? "config" .!= []
+                         <$> v .:  "path"
+                         <*> (isTemplate <$> (v .:? "type"))
+                         <*> v .:? "config"            .!= []
+
+-- | Small helper method to parse dockmaster/compose/files/type.
+isTemplate :: Maybe String -> Bool
+isTemplate (Just "template") = True
+isTemplate _                 = False
+
+-- | 'FromJSON' instance for 'ComposeConfig'
+instance FromJSON ComposeConfig where
+  parseJSON (Object v) = ComposeConfig
+                         <$> v .:? "files" .!= []
+                         <*> (concatMap T.words <$> v .:? "flags" .!= [])
+
+-- | 'Monoid' instance for 'ComposeConfig'
+instance Monoid ComposeConfig where
+  mempty = ComposeConfig [] []
+  mappend (ComposeConfig ws xs) (ComposeConfig ys zs) =
+    ComposeConfig (ws ++ ys) (xs ++ zs)
+
+-- | 'FromJSON' instance for 'EnvConfig'
+instance FromJSON EnvConfig where
+   parseJSON (Object v) = EnvConfig
+                         <$> v .:? "files" .!= []
+                         <*> v .:? "vars" .!= mempty
+
+-- | 'Monoid' instance for 'EnvConfig'
+instance Monoid EnvConfig where
+  mempty = EnvConfig [] mempty
+  mappend (EnvConfig ws xs) (EnvConfig ys zs) =
+    EnvConfig (ws <> ys) (xs <> zs)
 
 -- | 'FromJSON' instance for 'Target'
 instance FromJSON Target where
   parseJSON (Object v) = Target
-                         <$> v .: "name"
-                         <*> v .: "type"
+                         <$> v .:  "name"
+                         <*> v .:  "type"
                          <*> v .:? "machine"
 
 -- | 'FromJSON' instance for 'Hook'
@@ -68,15 +116,16 @@ instance FromJSON Hook where
 -- | 'FromJSON' instance for 'CommandConfig'
 instance FromJSON CommandConfig where
   parseJSON (Object v) = CommandConfig
-                         <$> v .:?  "compose" .!= True
-                         <*> v .:?  "pre_hooks" .!= []
-                         <*> v .:?  "post_hooks" .!= []
+                         <$> v .:?  "run_compose" .!= True
+                         <*> v .:?  "pre_hooks"   .!= []
+                         <*> v .:?  "post_hooks"  .!= []
 
 -- | 'FromJSON' instance for 'Dockmaster'
 instance FromJSON Dockmaster where
   parseJSON (Object v) = Dockmaster
-                         <$> v .:?  "file"
-                         <*> v .:?  "targets" .!= []
+                         <$> v .:?  "compose"  .!= mempty
+                         <*> v .:?  "env"      .!= mempty
+                         <*> v .:?  "targets"  .!= []
                          <*> v .:?  "commands" .!= mempty
   -- A non-Object value is of the wrong type, so fail.
   parseJSON _ = error "Can't parse Dockmaster from YAML/JSON"
