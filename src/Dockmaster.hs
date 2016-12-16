@@ -25,7 +25,6 @@ module Dockmaster
 -- Base modules
 import Data.Either
 import Data.Monoid ((<>))
-import Data.Maybe
 
 -- Local modules
 import Dockmaster.Types
@@ -36,7 +35,6 @@ import Dockmaster.Compose
 
 -- External modules
 import Shelly
-import Text.Regex.Posix
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 default (T.Text)
@@ -55,29 +53,7 @@ dm path command args = do
       case dmYml of
         Left err    -> echo_err "Failed to parse dockmaster.yml:\n" >> errorExit err
         Right dmYml -> do
+          prepareEnv dmYml
           let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
           (flip mapM_) targets $ \m -> dockermachine m $ do
             hookWrap' dmYml command $ dockercompose dmYml $ command : args
-
--- | Takes machine name and 'Sh' action, and wraps 'Sh' action in scope of
--- @docker-machine@ env
-dockermachine :: T.Text -> Sh a -> Sh a
-dockermachine m action = sub $ do
-  envvars <- run "docker-machine" ["env", m]
-  mapM (\(var,val) -> setenv (T.pack var) (T.pack val))
-    $ pairEnvvars $ T.unpack envvars
-  action
-
--- | Accept a string of possibly many export @VAR=VAL@ statements
--- and return the @(VAR,VAL)@ pairs
-pairEnvvars :: String -> [(String,String)]
-pairEnvvars ls = mapMaybe match $ lines ls
-  where match :: String -> Maybe (String,String)
-        match l = case l =~ exportPattern :: [[String]] of
-                    [[_,var,val]] -> Just (var, val)
-                    _             -> Nothing
-
--- | Regex pattern for matching @docker-machine@ env output
-exportPattern :: String
-exportPattern = "export ([A-Za-z0-9_]+)=\"(.*)\""
-
