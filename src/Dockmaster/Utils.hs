@@ -16,6 +16,7 @@ module Dockmaster.Utils
   -- * Sh and FilePath utils
   , getHomeDirectory
   , parsePath
+  , parsePath'
   , toText
   , log
   , (</>>=)
@@ -23,7 +24,7 @@ module Dockmaster.Utils
   ) where
 
 import Shelly
-import Control.Monad (liftM, liftM2)
+import Control.Monad (liftM, liftM2, (>=>))
 import Prelude hiding (FilePath, log)
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
@@ -59,6 +60,10 @@ parsePath path = do
                         , ("$HOME", home)
                         , ("$DOCKMASTER_HOME", dmHome) ]
    in (return . fromText . replace) path
+
+-- | Just like 'parsePath' but goes from 'FilePath' to 'Sh Text'
+parsePath' :: FilePath -> Sh T.Text
+parsePath' = toText >=> parsePath >=> toText
 
 -- | Convert 'FilePath' to 'Text' within 'Sh', exits on failure to convert
 toText :: FilePath -> Sh T.Text

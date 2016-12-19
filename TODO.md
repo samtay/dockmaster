@@ -1,7 +1,6 @@
 # todo
 
 ## mvp
-0. Implement compose multi-files/flags
 2. Follow up on [#234](https://github.com/pcapriotti/optparse-applicative/pull/234) to remove '--'
 3. MORE TESTS for dm/dmc runtime
 

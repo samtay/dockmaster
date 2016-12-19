@@ -56,7 +56,7 @@ prepareEnv cfg = do
 -- | Uses COP to parse a list of files into shell vars
 parseEnvFiles :: [FilePath] -> Sh [(String,String)]
 parseEnvFiles fs = do
-  files <- mapM (toText <=< parsePath <=< toText) fs
+  files <- mapM parsePath' fs
   vars <- run "cop" $ "--shell" : files
   return $ pairEnvvars $ T.unpack vars
 
