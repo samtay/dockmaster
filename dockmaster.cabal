@@ -1,0 +1,66 @@
+name:                dockmaster
+version:             0.1.0.0
+synopsis:            yaml loving docker-compose orchestration
+homepage:            https://github.com/SamTay/dockmaster#readme
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Sam Tay
+maintainer:          sam.chong.tay@gmail.com
+copyright:           2016 Sam Tay
+category:            Web
+build-type:          Simple
+tested-with:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.11.*
+cabal-version:       >=1.10
+description:
+  This is a simple command line tool focused around a dockmaster.yml file
+  for your project, which allows some conveniences such as specifying
+  docker-machine targets and allowing arbitrary hooks around commands
+  that are forwarded to docker-compose.
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Dockmaster
+  other-modules:       Dockmaster.Compose
+                     , Dockmaster.Config.Parser
+                     , Dockmaster.Config.Types
+                     , Dockmaster.Parser
+                     , Dockmaster.Types
+                     , Dockmaster.Utils
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring
+                     , regex-posix
+                     , shelly
+                     , split
+                     , system-filepath >= 0.4.7 && < 0.5
+                     , system-fileio < 0.4
+                     , text
+                     , unordered-containers
+                     , yaml
+  default-language:    Haskell2010
+
+executable dm
+  hs-source-dirs:      app
+  main-is:             Dm.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , dockmaster
+                     , shelly
+                     , text
+                     , optparse-applicative
+  default-language:    Haskell2010
+
+test-suite dockmaster-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , dockmaster
+                     , directory
+                     , yaml
+                     , bytestring
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/SamTay/dockmaster
