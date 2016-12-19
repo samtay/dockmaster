@@ -57,7 +57,9 @@ prepareEnv cfg = do
 parseEnvFiles :: [FilePath] -> Sh [(String,String)]
 parseEnvFiles fs = do
   files <- mapM parsePath' fs
-  vars <- run "cop" $ "--shell" : files
+  vars <- if null files
+             then return T.empty
+             else run "cop" $ "--shell" : files
   return $ pairEnvvars $ T.unpack vars
 
 -- | Executes specific dc command pre/post hooks around action argument
