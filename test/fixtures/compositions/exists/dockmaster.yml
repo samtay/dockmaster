@@ -1,43 +1,15 @@
 ---
-compose:
-  files:
-    - path: docker-compose.yml
-      type: file
-    - path: docker-compose.j2
-      type: template
-      config:
-        - goodword.vars
-  flags:
-    - "--project-name aaa"
-
 env:
-  files:
-    - "somefile.env"
-    - "somefile.json"
-    - "somefile.xml"
-    - "somefile.yml"
   vars:
-    ROB_RULES_INT: "1"
-    ROB_STRING: "true"
-
-targets:
-  - name: node-a
-    type: docker-machine
-
-    # optional, defaults to name
-    machine: node-a
+    ROBS_FAVORITE_NUM: "1"
+    ROBS_FAVORITE_WORD: "magento2"
 
 commands:
-  up:
-    pre_hooks:
-      - file: relative_path/to/hook.sh
-      - file: /absolute/path/to/hook.sh
-      - shell: rm -rf .working
-  wiggle:
+  num:
     run_compose: false
-    # ^^^ does not call docker-compose between pre- and post- hooks.
     pre_hooks:
-      - file: wiggle.sh
+      - shell: mkdir test/output
+      - shell: echo "robs favorite number is $ROBS_FAVORITE_NUM" > test/output/favnum.txt
   push:
     help: My help text
     run_compose: false

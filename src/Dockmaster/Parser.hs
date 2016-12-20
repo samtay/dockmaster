@@ -19,6 +19,7 @@ module Dockmaster.Parser
   , dockermachine
   , hookWrap
   , hookWrap'
+  , execHook
   ) where
 
 -- Local modules

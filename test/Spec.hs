@@ -45,3 +45,13 @@ main = hspec $ do
       validWD `shouldBe` (Right existingComposition)
     it "should fail appropriately" $ do
       invalidWD `shouldBe` workDirNotFound
+
+  describe "Environment interaction" $ do
+    it "should successfully execute locally" $ do
+      pendingWith "SAM needs to add --local flag so we can test dm"
+    it "can propogate environment variables" $ do
+      pendingWith "SAM needs to add --local flag so we can test dm"
+
+-- After adding --local flag and testing dm execution,
+-- we can then test if env variables were written to output dir correctly,
+-- and then do an hspec cleanup via "afterAll_"
