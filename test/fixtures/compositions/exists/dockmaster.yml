@@ -1,0 +1,50 @@
+---
+compose:
+  files:
+    - path: docker-compose.yml
+      type: file
+    - path: docker-compose.j2
+      type: template
+      config:
+        - goodword.vars
+  flags:
+    - "--project-name aaa"
+
+env:
+  files:
+    - "somefile.env"
+    - "somefile.json"
+    - "somefile.xml"
+    - "somefile.yml"
+  vars:
+    ROB_RULES_INT: "1"
+    ROB_STRING: "true"
+
+targets:
+  - name: node-a
+    type: docker-machine
+
+    # optional, defaults to name
+    machine: node-a
+
+commands:
+  up:
+    pre_hooks:
+      - file: relative_path/to/hook.sh
+      - file: /absolute/path/to/hook.sh
+      - shell: rm -rf .working
+  wiggle:
+    run_compose: false
+    # ^^^ does not call docker-compose between pre- and post- hooks.
+    pre_hooks:
+      - file: wiggle.sh
+  push:
+    help: My help text
+    run_compose: false
+    pre_hooks:
+      - shell: docker scp $1 $ROB_RULES nginx:/var/nginx/packages/
+    post_hooks:
+      - file: myuploadscript.sh
+
+
+# dm push myfile.zip

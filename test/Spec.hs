@@ -1,27 +1,42 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Main where
 
-import Data.Yaml
 import Dockmaster
-import qualified Data.ByteString as BS
-import Data.Maybe
-import System.Exit
-import System.Directory
 
--- TODO test Dockmaster.Parser.dockmasterYml instead of using this parse function
+import Test.Hspec
+import Shelly
+import Prelude hiding (FilePath)
+import Data.Either
+import qualified Data.Text as T
+default (T.Text)
 
-parseDockmasterYml :: FilePath -> IO Bool
-parseDockmasterYml "."  = return True
-parseDockmasterYml ".." = return True
-parseDockmasterYml file = do
-  contents <- BS.readFile $ "./test/fixtures/" ++ file
-  case (decodeEither contents :: Either String Dockmaster) of
-       (Left e)   -> putStrLn ("Failed to parse " ++ file ++":") >> putStrLn e >> return False
-       otherwise  -> putStrLn ("Parsed " ++ file ++ " successfully.") >> return True
+validFiles :: Sh [FilePath]
+validFiles = ls $ fromText "test/fixtures/valid"
+
+invalidFiles :: Sh [FilePath]
+invalidFiles = ls $ fromText "test/fixtures/invalid"
+
+existingComposition :: FilePath
+existingComposition = fromText "test/fixtures/compositions/exists"
+
+nonExistingComposition :: FilePath
+nonExistingComposition = fromText "test/fixtures/compositions/NONEXISTENT"
 
 main :: IO ()
-main = do
-  files   <- getDirectoryContents "./test/fixtures/"
-  results <- mapM parseDockmasterYml files
-  if and results
-     then exitWith ExitSuccess
-     else exitWith (ExitFailure 1)
+main = hspec $ do
+  describe "Parsing dockmaster.yml files" $ do
+    validFiles   <- runIO $ shelly $ validFiles >>= mapM parseYml 
+    invalidFiles <- runIO $ shelly $ invalidFiles >>= mapM parseYml
+    it "should parse valid files" $ do
+      lefts validFiles `shouldBe` []
+    it "should fail appropriately" $ do
+      rights invalidFiles `shouldBe` []
+  describe "Relative workdir resolution" $ do
+    validWD   <- runIO $ shelly $ silently $ getWorkDir' baseConfig existingComposition
+    invalidWD <- runIO $ shelly $ silently $ getWorkDir' baseConfig nonExistingComposition
+    it "should resolve existing compositions" $ do
+      validWD `shouldBe` (Right existingComposition)
+    it "should fail appropriately" $ do
+      invalidWD `shouldBe` workDirNotFound

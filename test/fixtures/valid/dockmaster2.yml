@@ -1,0 +1,35 @@
+---
+compose:
+  files:
+    - path: docker-compose.yml
+    - path: docker-compose.j2
+      type: template
+      config:
+        - some.vars
+        - many.env
+  flags:
+    - "--project-name aaa"
+
+env:
+  files:
+    - "somefile.env"
+    - "somefile.json"
+    - "somefile.xml"
+    - "somefile.yml"
+  vars:
+    BRICE_RULES: "true"
+    ROB_RULES: "sometimes"
+
+targets:
+  - name: node-a
+    type: docker-machine
+
+commands:
+  up:
+    pre_hooks:
+      - file: relative_path/to/hook.sh
+      - file: /absolute/path/to/hook.sh
+  push:
+    run_compose: false
+    post_hooks:
+      - file: myuploadscript.sh

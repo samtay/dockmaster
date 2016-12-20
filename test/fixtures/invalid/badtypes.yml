@@ -1,0 +1,20 @@
+---
+env:
+  vars:
+    ROB_RULES_INT: 1
+    ROB_BOOL: true
+    ROB_STRING: "string"
+
+targets:
+  - name: node-a
+    type: docker-machine
+
+commands:
+  up:
+    pre_hooks:
+      - file: relative_path/to/hook.sh
+      - shell: rm -rf .working
+  wiggle:
+    run_compose: false
+    pre_hooks:
+      - file: wiggle.sh

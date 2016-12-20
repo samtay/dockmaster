@@ -6,7 +6,7 @@ compose:
     - path: docker-compose.j2
       type: template
       config:
-        - fuck.vars
+        - badword.vars
   flags:
     - "--project-name aaa"
 
@@ -39,12 +39,8 @@ commands:
     pre_hooks:
       - file: wiggle.sh
   push:
-    help: My help text
     run_compose: false
     pre_hooks:
       - shell: docker scp $1 $ROB_RULES nginx:/var/nginx/packages/
     post_hooks:
       - file: myuploadscript.sh
-
-
-# dm push myfile.zip

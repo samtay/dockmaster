@@ -10,8 +10,11 @@ Portability : POSIX
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Dockmaster.Parser
-  ( dockmasterYml
-  -- * Dockmaster command configuration
+  (
+  -- * Dockmaster yml parsing
+    dockmasterYml
+  , parseYml
+  -- * Dockmaster interpretation
   , prepareEnv
   , dockermachine
   , hookWrap
@@ -41,8 +44,12 @@ default (T.Text)
 --
 -- Note this assumes we are already in the correct dockmaster workdir.
 dockmasterYml :: Sh (Either T.Text Dockmaster)
-dockmasterYml = do
-  contents <- readBinary "dockmaster.yml"
+dockmasterYml = parseYml $ fromText "dockmaster.yml"
+
+-- | Parse dockmaster yml file
+parseYml :: FilePath -> Sh (Either T.Text Dockmaster)
+parseYml fp = do
+  contents <- readBinary fp
   return $
     mapBoth T.pack id (decodeEither contents :: Either String Dockmaster)
 

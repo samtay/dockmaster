@@ -18,6 +18,7 @@ module Dockmaster.Config.Parser
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
+  , workDirNotFound
   ) where
 
 -- Local modules

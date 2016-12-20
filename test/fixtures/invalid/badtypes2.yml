@@ -1,0 +1,9 @@
+---
+
+commands:
+  - up:
+      pre_hooks:
+        - file: doesntmatter.sh
+
+arbitrary:
+  wrong: "array instead of map"
