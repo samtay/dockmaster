@@ -9,6 +9,7 @@ import Test.Hspec
 import Shelly
 import Prelude hiding (FilePath)
 import Data.Either
+import Control.Monad
 import qualified Data.Text as T
 default (T.Text)
 
@@ -26,13 +27,17 @@ nonExistingComposition = fromText "test/fixtures/compositions/NONEXISTENT"
 
 main :: IO ()
 main = hspec $ do
+
   describe "Parsing dockmaster.yml files" $ do
     validFiles   <- runIO $ shelly $ validFiles >>= mapM parseYml 
     invalidFiles <- runIO $ shelly $ invalidFiles >>= mapM parseYml
-    it "should parse valid files" $ do
-      lefts validFiles `shouldBe` []
-    it "should fail appropriately" $ do
-      rights invalidFiles `shouldBe` []
+    forM_ validFiles $ \file -> do
+      it "should parse valid files" $ do
+        file `shouldSatisfy` isRight
+    forM_ invalidFiles $ \file -> do
+      it "should fail appropriately" $ do
+        file `shouldSatisfy` isLeft
+
   describe "Relative workdir resolution" $ do
     validWD   <- runIO $ shelly $ silently $ getWorkDir' baseConfig existingComposition
     invalidWD <- runIO $ shelly $ silently $ getWorkDir' baseConfig nonExistingComposition

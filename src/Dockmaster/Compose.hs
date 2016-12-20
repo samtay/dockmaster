@@ -19,7 +19,7 @@ import Dockmaster.Types
 import Dockmaster.Utils (parsePath', toText)
 
 -- External modules
-import Control.Monad ((<=<))
+import Control.Monad ((<=<), forM_)
 import Data.List (intersperse)
 import Shelly
 import Prelude hiding (FilePath)
@@ -64,9 +64,9 @@ composeTemplate (n, ComposeFile {cfPath=f, cfConfig=cs}) = do
 decomposeTemplates :: Sh ()
 decomposeTemplates = do
   files <- lsT $ fromText "."
-  mapM_ fn files
-    where fn file = when (tmpFilePrefix `T.isPrefixOf` file)
-            $ rm (fromText file)
+  forM_ files
+    $ \file -> when (tmpFilePrefix `T.isPrefixOf` file)
+      $ rm (fromText file)
 
 -- | Leverages @cop@ to build @docker-compose.yml@ content from template/vars.
 --

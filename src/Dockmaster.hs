@@ -25,6 +25,7 @@ module Dockmaster
 -- Base modules
 import Data.Either
 import Data.Monoid ((<>))
+import Control.Monad
 
 -- Local modules
 import Dockmaster.Types
@@ -55,5 +56,5 @@ dm path command args = do
         Right dmYml -> do
           prepareEnv dmYml
           let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
-          (flip mapM_) targets $ \m -> dockermachine m $ do
+          forM_ targets $ \m -> dockermachine m $ do
             hookWrap' dmYml command $ dockercompose dmYml $ command : args
