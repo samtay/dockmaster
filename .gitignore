@@ -1,3 +1,7 @@
+# build process
+dist/
+
+# standard haskell gitignore
 *.swp
 dist
 dist-*
