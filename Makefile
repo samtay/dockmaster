@@ -6,42 +6,79 @@
 #
 # common targets
 #
-NAMESPACE:=dm
-DMC:=dmc
+NAMESPACE:=dockmaster
 prefix = $(DESTDIR)/usr/local/bin
 
-.PHONY: all clean
-all: $(NAMESPACE) # dmc not yet completed, not built by default
+.PHONY: all clean clean-% dockerbuild-% install uninstall
+
+all: $(NAMESPACE)
 
 clean:
-	rm -rf $(CURDIR)/dist
+	rm -rf $(CURDIR)/dist $(CURDIR)/.stack-work
+
+clean-%:
+	rm -rf $(CURDIR)/dist/$*
+
+clean-tests: clean
+	@rm -rf $(CURDIR)/tests/bats/tmp
+
+clean-dockerbuilds:
+	for id in $$(docker images -q makefile-$(NAMESPACE)-*) ; do docker rmi  $$id ; done
+
+dockerbuild-%:
+	echo "--- building Dockerfiles from $*/ ---"
+	docker build \
+	  --build-arg NAMESPACE=$(NAMESPACE) \
+		--tag makefile-$(NAMESPACE)-$* \
+		  $*/
+
+install: dist/dm dist/dmc
+	$(info * installing into $(prefix))
+  # use mkdir vs. install -D/d (macos portability)
+	@mkdir -p $(prefix)
+	@cp -a dist/ $(prefix)/
+
+uninstall:
+	rm -rf  $(prefix)/dm $(prefix)/dmc
 
 #
 # app targets
 #
-.PHONY: $(NAMESPACE) $(DMC) tests
-$(NAMESPACE):
-	$(call compile,$(NAMESPACE))
+.PHONY: $(NAMESPACE) compile-%
 
-$(DMC):
-	$(call compile,$(DMC))
-
-tests:
+$(NAMESPACE): compile-dm compile-dmc
+compile-%: clean-%
+	$(info * building dist/$* ...)
 	@( \
-	  cd $(CURDIR) ; \
-	  stack test \
+		cd $(CURDIR) ; \
+		mkdir -p dist ; \
+		PATH="$(CURDIR)/dist:$$PATH" ; \
+	  stack install --system-ghc --local-bin-path dist dockmaster:exe:$*  \
 	)
 
-define compile
-	$(info * building dist/$(1)) \
-	@( \
-	  cd $(CURDIR) ; \
-	  rm -rf dist/$(1) ; \
-	  mkdir -p dist ; \
-	  stack build dockmaster:exe:$(1) --copy-bins --local-bin-path dist \
-	)
-endef
-	
+#
+# test targets
+#
+
+TEST ?=
+SKIP_NETWORK_TEST ?=
+DOCKER_SOCKET ?= /var/run/docker.sock
+DOCKER_GROUP_ID ?= $(shell ls -ln $(DOCKER_SOCKET) | awk '{print $$4}')
+# for docker-for-mac, we also add group-id of 50 ("authedusers") as moby distro seems to auto bind-mount /var/run/docker.sock w/ this ownership
+DOCKER_FOR_MAC_WORKAROUND := $(shell [[ "$$OSTYPE" == darwin* || "$$OSTYPE" == macos* ]] && echo "--group-add=50")
+
+.PHONY: tests
+
+tests: dockerbuild-tests clean-tests
+	docker run -it --rm -u $$(id -u):$$(id -g) $(DOCKER_FOR_MAC_WORKAROUND) \
+		--group-add=$(DOCKER_GROUP_ID) \
+		--device=/dev/tty0 --device=/dev/console \
+		-v $(CURDIR):/$(CURDIR) \
+		-v $(DOCKER_SOCKET):/var/run/docker.sock \
+		-e SKIP_NETWORK_TEST=$(SKIP_NETWORK_TEST) \
+		--workdir $(CURDIR) \
+		  makefile-$(NAMESPACE)-tests bats tests/bats/$(TEST)
+
 #
 # release targets
 #
@@ -84,8 +121,10 @@ _mkrelease: _release_check $(NAMESPACE)
 		  curl -sLH "Authorization: token $(GH_TOKEN)" -X PATCH --data '$(CREATE_JSON)' $(GH_URL)/repos/$(GH_PROJECT)/releases/$$id ; \
 		fi ; \
 		[ $$id = "null" ] && echo "  !! unable to create release" && exit 1 ; \
-		echo "  * uploading dist/$(NAMESPACE) to release $(RELEASE_TAG) ($$id) ..." ; \
-    curl -sL -H "Authorization: token $(GH_TOKEN)" -H "Content-Type: text/x-shellscript" --data-binary @"dist/$(NAMESPACE)" -X POST $(GH_UPLOAD_URL)/repos/$(GH_PROJECT)/releases/$$id/assets?name=$(NAMESPACE) &>/dev/null ; \
+		echo "  * uploading dist/dm to release $(RELEASE_TAG) ($$id) ..." ; \
+    curl -sL -H "Authorization: token $(GH_TOKEN)" -H "Content-Type: text/x-shellscript" --data-binary @"dist/dm" -X POST $(GH_UPLOAD_URL)/repos/$(GH_PROJECT)/releases/$$id/assets?name=dm &>/dev/null ; \
+		echo "  * uploading dist/dmc to release $(RELEASE_TAG) ($$id) ..." ; \
+    curl -sL -H "Authorization: token $(GH_TOKEN)" -H "Content-Type: text/x-shellscript" --data-binary @"dist/dmc" -X POST $(GH_UPLOAD_URL)/repos/$(GH_PROJECT)/releases/$$id/assets?name=dmc &>/dev/null ; \
 	)
 
 #
