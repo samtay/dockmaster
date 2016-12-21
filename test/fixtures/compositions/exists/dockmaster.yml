@@ -1,0 +1,22 @@
+---
+env:
+  vars:
+    ROBS_FAVORITE_NUM: "1"
+    ROBS_FAVORITE_WORD: "magento2"
+
+commands:
+  num:
+    run_compose: false
+    pre_hooks:
+      - shell: mkdir test/output
+      - shell: echo "robs favorite number is $ROBS_FAVORITE_NUM" > test/output/favnum.txt
+  push:
+    help: My help text
+    run_compose: false
+    pre_hooks:
+      - shell: docker scp $1 $ROB_RULES nginx:/var/nginx/packages/
+    post_hooks:
+      - file: myuploadscript.sh
+
+
+# dm push myfile.zip

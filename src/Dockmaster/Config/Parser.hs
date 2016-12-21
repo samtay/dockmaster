@@ -18,6 +18,7 @@ module Dockmaster.Config.Parser
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
+  , workDirNotFound
   ) where
 
 -- Local modules
@@ -116,7 +117,7 @@ getWorkDir' cfg p = do
   path  <- toText p >>= parsePath
   mPath <- getFirst <$> if FP.absolute path
               then tryPath p
-              else mconcat <$> mapM tryPath (map (</> p) $ "." : dmcPaths cfg)
+              else mconcat <$> mapM tryPath (p : (map (</> p) $ dmcPaths cfg))
 
   return $ maybe workDirNotFound Right mPath
 

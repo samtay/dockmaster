@@ -16,36 +16,76 @@ module Dockmaster.Compose
 
 -- Local modules
 import Dockmaster.Types
-import Dockmaster.Utils (parsePath, toText)
+import Dockmaster.Utils (parsePath', toText)
 
 -- External modules
-import Control.Monad ((<=<))
+import Control.Monad ((<=<), forM_)
+import Data.List (intersperse)
 import Shelly
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 default (T.Text)
 
--- | Runs @docker-compose@ but uses compiled @docker-compose.yml@ file
--- if template/vars are specified in @dockmaster.yml@.
+-- | Runs @docker-compose@ but uses 'Dockmaster' configuration to possibly
+--
+-- (1) Provide multiple templated docker-compose.yml files
+-- (2) Pass global @docker-compose@ flags on every call
 dockercompose :: Dockmaster -> [T.Text] -> Sh ()
-dockercompose cfg optargs = print_stdout True $ maybe
-  (run_ "docker-compose" optargs) -- default run on docker-compose.yml, as usual
-  (composeViaTemplate optargs)
-  (dmFile cfg)
+dockercompose cfg cliArgs = do
+  let dcfg    = dmCompose cfg
+      dcflags = dcFlags dcfg
+      dcfiles = dcFiles dcfg
+  fargs <- composeTemplates dcfiles
+  print_stdout True $
+    run_ "docker-compose" $ dcflags ++ intersperse' "-f" fargs ++ cliArgs
+  decomposeTemplates
 
--- | Uses 'ComposeFile' argument to build templated @docker-compose.yml@ content
--- and pipes it directly to @docker-compose@.
-composeViaTemplate :: [T.Text] -> ComposeFile -> Sh ()
-composeViaTemplate optargs cf =
-  compileTemplate cf -|- run_ "docker-compose" ("-f" : "-" : optargs)
+-- | Compiles compose files specified in 'Dockmaster' configuration and
+-- returns a list of the composed filenames that now live in the working directory.
+composeTemplates :: [ComposeFile] -> Sh [T.Text]
+composeTemplates = (mapM composeTemplate) . (zip [0..])
+
+-- | Compiles a compose file. May or may not use COP depending on 'cfTemplate' flag.
+-- Returns filename.
+--
+-- Notice this function accepts an integer along with the 'ComposeFile'; this is to
+-- help identify it as a unique file.
+composeTemplate :: (Integer, ComposeFile) -> Sh T.Text
+composeTemplate (_, ComposeFile {cfPath=f, cfTemplate=False}) = parsePath' f
+composeTemplate (n, ComposeFile {cfPath=f, cfConfig=cs}) = do
+  let tmpName = T.concat [tmpFilePrefix, (T.pack $ show n), ".yml"]
+      tmpFile = fromText tmpName
+  compiledYml <- compileTemplate f cs
+  rm_f tmpFile -- might as well remove in case left over from failure
+  writefile tmpFile compiledYml
+  return tmpName
+
+-- | Removes all ".dm_tmp_compose_*" files in current working directory.
+decomposeTemplates :: Sh ()
+decomposeTemplates = do
+  files <- lsT $ fromText "."
+  forM_ files
+    $ \file -> when (tmpFilePrefix `T.isPrefixOf` file)
+      $ rm (fromText file)
 
 -- | Leverages @cop@ to build @docker-compose.yml@ content from template/vars.
 --
--- This function returns the stdout wrapped in 'Sh'. It can then be piped to
--- @docker-compose@ via @docker-compose -f -@ -- see documentation for @docker-compose@.
-compileTemplate :: ComposeFile -> Sh T.Text
-compileTemplate cf = do
-  file <- parse (cfPath cf)
-  vars <- mapM parse (cfVars cf)
-  run "cop" $ ["--render-template", file] ++ vars
-    where parse = toText <=< parsePath <=< toText
+-- This function returns the stdout wrapped in 'Sh'.
+compileTemplate :: FilePath -> [FilePath] -> Sh T.Text
+compileTemplate f cs = do
+  template <- parsePath' f
+  vars <- mapM parsePath' cs
+  cop template vars
+
+-- | COP render template wrapper
+cop :: T.Text -> [T.Text] -> Sh T.Text
+cop template vars = run "cop" $ "--render-template" : template : vars
+
+-- | Prefix for temporary compose files
+tmpFilePrefix :: T.Text
+tmpFilePrefix = ".dm_tmp_compose_"
+
+-- | Slight modification to 'Data.List.intersperse', also prefixes when nonempty.
+intersperse' :: a -> [a] -> [a]
+intersperse' _ [] = []
+intersperse' a xs = a : intersperse a xs

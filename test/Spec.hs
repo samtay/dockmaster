@@ -1,27 +1,57 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Main where
 
-import Data.Yaml
 import Dockmaster
-import qualified Data.ByteString as BS
-import Data.Maybe
-import System.Exit
-import System.Directory
 
--- TODO test Dockmaster.Parser.dockmasterYml instead of using this parse function
+import Test.Hspec
+import Shelly
+import Prelude hiding (FilePath)
+import Data.Either
+import Control.Monad
+import qualified Data.Text as T
+default (T.Text)
 
-parseDockmasterYml :: FilePath -> IO Bool
-parseDockmasterYml "."  = return True
-parseDockmasterYml ".." = return True
-parseDockmasterYml file = do
-  contents <- BS.readFile $ "./test/fixtures/" ++ file
-  case (decodeEither contents :: Either String Dockmaster) of
-       (Left e)   -> putStrLn ("Failed to parse " ++ file ++":") >> putStrLn e >> return False
-       otherwise  -> putStrLn ("Parsed " ++ file ++ " successfully.") >> return True
+validFiles :: Sh [FilePath]
+validFiles = ls $ fromText "test/fixtures/valid"
+
+invalidFiles :: Sh [FilePath]
+invalidFiles = ls $ fromText "test/fixtures/invalid"
+
+existingComposition :: FilePath
+existingComposition = fromText "test/fixtures/compositions/exists"
+
+nonExistingComposition :: FilePath
+nonExistingComposition = fromText "test/fixtures/compositions/NONEXISTENT"
 
 main :: IO ()
-main = do
-  files   <- getDirectoryContents "./test/fixtures/"
-  results <- mapM parseDockmasterYml files
-  if and results
-     then exitWith ExitSuccess
-     else exitWith (ExitFailure 1)
+main = hspec $ do
+
+  describe "Parsing dockmaster.yml files" $ do
+    validFiles   <- runIO $ shelly $ validFiles >>= mapM parseYml 
+    invalidFiles <- runIO $ shelly $ invalidFiles >>= mapM parseYml
+    forM_ validFiles $ \file -> do
+      it "should parse valid files" $ do
+        file `shouldSatisfy` isRight
+    forM_ invalidFiles $ \file -> do
+      it "should fail appropriately" $ do
+        file `shouldSatisfy` isLeft
+
+  describe "Relative workdir resolution" $ do
+    validWD   <- runIO $ shelly $ silently $ getWorkDir' baseConfig existingComposition
+    invalidWD <- runIO $ shelly $ silently $ getWorkDir' baseConfig nonExistingComposition
+    it "should resolve existing compositions" $ do
+      validWD `shouldBe` (Right existingComposition)
+    it "should fail appropriately" $ do
+      invalidWD `shouldBe` workDirNotFound
+
+  describe "Environment interaction" $ do
+    it "should successfully execute locally" $ do
+      pendingWith "SAM needs to add --local flag so we can test dm"
+    it "can propogate environment variables" $ do
+      pendingWith "SAM needs to add --local flag so we can test dm"
+
+-- After adding --local flag and testing dm execution,
+-- we can then test if env variables were written to output dir correctly,
+-- and then do an hspec cleanup via "afterAll_"
