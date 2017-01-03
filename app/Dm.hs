@@ -19,6 +19,7 @@ default (T.Text)
 data Dm = Dm
   { dmCompositionDir :: FilePath
   , dmVerbose        :: Bool
+  , dmLocal          :: Bool
   , dmDcCommand      :: T.Text
   , dmDcOpts         :: [T.Text]
   } deriving (Eq,Show)
@@ -39,14 +40,14 @@ execShelly :: Dm -> IO ()
 execShelly opts = shelly
   $ escaping False
   $ subVerbosity (dmVerbose opts)
-  $ let (Dm path _ command optargs) = opts
-        in dockmaster path command optargs
+  $ let (Dm path _ local command optargs) = opts
+     in dockmaster path local command optargs
 
 -- | Runs @docker-compose@ commands against resolved composition locations
 -- See usage docs for more info. Tries to find a @dockmaster.yml@ file based on
 -- the initial path argument
-dockmaster :: FilePath -> T.Text -> [T.Text] -> Sh ()
-dockmaster path command args = do
+dockmaster :: FilePath -> Bool -> T.Text -> [T.Text] -> Sh ()
+dockmaster path local command args = do
   eWd <- getWorkDir path
   case eWd of
     Left err -> errorExit err
@@ -57,9 +58,10 @@ dockmaster path command args = do
         Left err    -> echo_err "Failed to parse dockmaster.yml:\n" >> errorExit err
         Right dmYml -> do
           prepareEnv dmYml
-          let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
-          forM_ targets $ \m -> dockermachine m $ do
-            hookWrap' dmYml command $ dockercompose dmYml $ command : args
+          let hookwrap = hookWrap' dmYml command $ dockercompose dmYml $ command : args
+              targets = map targetName $ dmTargets dmYml -- just grabbing machine name
+          if local then hookwrap else
+            forM_ targets $ \m -> dockermachine m hookwrap
 
 -- | Accepts a verbosity setting for the subshell
 -- Propogates verbosity to printing options for commands, stdout, stderr
@@ -77,17 +79,21 @@ parser defaultCompDir = Dm
       <> metavar "PATH"
       <> showDefault
       <> value defaultCompDir
-      <> help "Composition directory. Note this can be relative to DM_COMPOSITIONS_DIR array." )
+      <> help "Composition directory. Note this can be relative to any directories specified in global config." )
   <*> switch
       ( long "verbose"
       <> short 'v'
-      <> help "Verbose output flag" )
+      <> help "Verbose output.")
+  <*> switch
+      ( long "local"
+      <> short 'l'
+      <> help "Execute without connecting to configured docker machine." )
   <*> argument text
       ( metavar "COMMAND"
-      <> help "Command to forward to docker-compose")
+      <> help "Command to forward to docker-compose.")
   <*> many (argument text
       ( metavar "ARGS"
-      <> help "Any arguments/options to forward to docker-compose COMMAND"))
+      <> help "Any arguments/options to forward to docker-compose COMMAND."))
 
 -- | Generate 'ParserInfo' 'Dm'.
 -- Takes a string argument as the default composition value
