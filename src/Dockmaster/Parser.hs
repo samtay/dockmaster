@@ -76,8 +76,8 @@ hookWrap :: T.Text -> Sh () -> Sh ()
 hookWrap dcCmd action = do
   dmYml <- dockmasterYml
   either
-    errorExit                            -- Exit on dockmaster.yml parsing failure
-    (\cfg -> hookWrap' cfg dcCmd action) -- Otherwise execute hooks & docker-compose
+    errorExit -- Exit on dockmaster.yml parsing failure
+    (\cfg -> sub $ prepareEnv cfg >> hookWrap' cfg dcCmd action) -- Otherwise execute hooks & action
     dmYml
 
 -- | Same thing as 'hookWrap' but accepts 'Dockmaster' config to execute against.
@@ -102,7 +102,7 @@ execHook (File txt)  = do
       else txt
   bash_ file []
 -- Execute "shell" hook type
-execHook (Shell txt) = unless (T.null txt) $ do
+execHook (Shell txt) = unless (T.null txt) $ escaping False $ do
   let (shCmd:shArgs) = T.words txt
   run_ (fromText shCmd) shArgs
 
