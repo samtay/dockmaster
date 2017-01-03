@@ -3,18 +3,14 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Main where
 
--- Local packages
 import Dockmaster
-import Options.Utils
-
--- External packages
 import Shelly
 import Options.Applicative
 
--- Base packages
-import System.Environment
 import Prelude hiding (FilePath)
+import Control.Monad (forM_)
 import Data.Monoid ((<>))
+import Options.Utils (text, filePathOption)
 import qualified Data.Text as T
 
 default (T.Text)
@@ -34,21 +30,42 @@ main :: IO ()
 main = do
   envCompDir <- shelly $ get_env "DOCKMASTER_COMPOSITION"
   let defaultCompDir = maybe "." T.unpack envCompDir
-   in execParser (opts defaultCompDir) >>= runtime
+   in execParser (opts defaultCompDir) >>= execShelly
 
--- | Runtime execution
+-- | Shelly execution
 --
 -- Accepts 'Dm' instance and forwards to 'dm' function
-runtime :: Dm -> IO ()
-runtime opts = shelly $ (escaping False) . (subVerbosity $ dmVerbose opts) $ do
-  let (Dm path _ command optargs) = opts
-   in dm path command optargs
+execShelly :: Dm -> IO ()
+execShelly opts = shelly
+  $ escaping False
+  $ subVerbosity (dmVerbose opts)
+  $ let (Dm path _ command optargs) = opts
+        in dockmaster path command optargs
+
+-- | Runs @docker-compose@ commands against resolved composition locations
+-- See usage docs for more info. Tries to find a @dockmaster.yml@ file based on
+-- the initial path argument
+dockmaster :: FilePath -> T.Text -> [T.Text] -> Sh ()
+dockmaster path command args = do
+  eWd <- getWorkDir path
+  case eWd of
+    Left err -> errorExit err
+    Right wd -> sub $ do
+      cd wd
+      dmYml <- dockmasterYml
+      case dmYml of
+        Left err    -> echo_err "Failed to parse dockmaster.yml:\n" >> errorExit err
+        Right dmYml -> do
+          prepareEnv dmYml
+          let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
+          forM_ targets $ \m -> dockermachine m $ do
+            hookWrap' dmYml command $ dockercompose dmYml $ command : args
 
 -- | Accepts a verbosity setting for the subshell
 -- Propogates verbosity to printing options for commands, stdout, stderr
 subVerbosity :: Bool -> Sh a -> Sh a
 subVerbosity v =
-  (print_stdout v) . (print_stderr v) . (print_commands v)
+  print_stdout v . print_stderr v . print_commands v
 
 -- | Parser for 'Dm' opts/args.
 -- Takes a string argument as the default composition value
