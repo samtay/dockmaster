@@ -49,9 +49,10 @@ execShelly opts = shelly
 dockmaster :: FilePath -> Bool -> T.Text -> [T.Text] -> Sh ()
 dockmaster path local command args = do
   eWd <- getWorkDir path
-  case eWd of
-    Left err -> errorExit err
-    Right wd -> sub $ do
+  either dmcError dmExec eWd where
+    dmcError WorkDirNotFound     = errorExit "Could not resolve dockmaster working directory."
+    dmcError (DecodingError err) = echo_err "Failed to parse dm configuration.\n" >> errorExit err
+    dmExec wd = sub $ do
       cd wd
       dmYml <- dockmasterYml
       case dmYml of

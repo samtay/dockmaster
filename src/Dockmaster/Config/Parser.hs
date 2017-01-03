@@ -11,14 +11,15 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Dockmaster.Config.Parser
   (
+  -- * Error types
+    DmcError(..)
   -- * Getting global config
-    config
+  , config
   , baseConfig
 
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
-  , workDirNotFound
   ) where
 
 -- Local modules
@@ -34,7 +35,14 @@ import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
 import Data.Monoid ((<>), mconcat, First(..))
+import Control.Monad ((>=>))
 default (T.Text)
+
+-- | Dockmaster configuration runtime errors
+data DmcError =
+    WorkDirNotFound
+  | DecodingError T.Text
+  deriving (Eq, Show)
 
 ---------- dm config functions ----------
 
@@ -42,7 +50,7 @@ default (T.Text)
 --
 -- If @config.yml@ fails to parse, returns a @Left error@.
 -- If @config.yml@ is not found, returns @Right baseConfig@ (default configuration).
-config :: Sh (Either T.Text Config)
+config :: Sh (Either DmcError Config)
 config = do
   mPath <- resolvePath
   case mPath of
@@ -50,8 +58,8 @@ config = do
     (Just path) -> do
       contents <- readBinary path
       case decodeEither contents :: Either String Config of
-        Left err  -> return . Left $ T.pack err
-        Right cfg -> return cfg >>= parseConfig >>= return . Right
+        Left err  -> return . Left . DecodingError $ T.pack err
+        Right cfg -> fmap Right (parseConfig cfg)
 
 -- | Get base config options
 baseConfig :: Config
@@ -68,14 +76,14 @@ resolvePath = do
   homePath  <- testM test_e $ getHomeDirectory </>>= ".dockmaster" </> "config.yml"
   etcPath   <- testM test_e $ return "/etc" </>>= "dockmaster" </> "config.yml"
   return $
-    getFirst . mconcat $ map First [envPathT >>= (return . fromText), homePath, etcPath]
+    getFirst . mconcat $ map First [fmap fromText envPathT, homePath, etcPath]
 
 -- | Parse the paths specified in configuration
 --
 -- This handles in-line evaluation of @~, $HOME, $DOCKMASTER_HOME@, etc.
 parseConfig :: Config -> Sh Config
 parseConfig cfg = do
-  parsedPaths <- mapM (\p -> toText p >>= parsePath) (dmcPaths cfg)
+  parsedPaths <- mapM (toText >=> parsePath) (dmcPaths cfg)
   return $ Config { dmcPaths = parsedPaths }
 
 ---------- dm workdir functions ----------
@@ -102,7 +110,7 @@ parseConfig cfg = do
 --
 -- >>> getWorkDir "deploybot"
 -- Right "$HOME/git/deploybot"
-getWorkDir :: FilePath -> Sh (Either T.Text FilePath)
+getWorkDir :: FilePath -> Sh (Either DmcError FilePath)
 getWorkDir p = do
   eCfg <- config
   case eCfg of
@@ -111,7 +119,7 @@ getWorkDir p = do
 
 -- | Same thing as 'getWorkDir' but uses a 'Config' argument instead of
 -- resolving one.
-getWorkDir' :: Config -> FilePath -> Sh (Either T.Text FilePath)
+getWorkDir' :: Config -> FilePath -> Sh (Either DmcError FilePath)
 getWorkDir' cfg p = do
   -- If absolute path is given, it is the only one attempted
   path  <- toText p >>= parsePath
@@ -119,7 +127,7 @@ getWorkDir' cfg p = do
               then tryPath p
               else mconcat <$> mapM tryPath (p : (map (</> p) $ dmcPaths cfg))
 
-  return $ maybe workDirNotFound Right mPath
+  return $ maybe (Left WorkDirNotFound) Right mPath
 
 -- | Check if directory @dir@ contains a @dockmaster.yml@ file
 -- If it does, return @First dir@, otherwise Nothing
@@ -131,7 +139,3 @@ tryPath dir = do
   return . First $ if found
      then Just dir
      else Nothing
-
--- | Just a small abstraction to keep error message on its own
-workDirNotFound :: Either T.Text b
-workDirNotFound = Left "dockmaster.yml file not found"

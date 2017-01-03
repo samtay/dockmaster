@@ -44,7 +44,7 @@ main = hspec $ do
     it "should resolve existing compositions" $ do
       validWD `shouldBe` (Right existingComposition)
     it "should fail appropriately" $ do
-      invalidWD `shouldBe` workDirNotFound
+      invalidWD `shouldBe` (Left WorkDirNotFound)
 
   describe "Environment interaction" $ do
     it "should successfully execute locally" $ do
