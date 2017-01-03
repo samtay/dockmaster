@@ -8,7 +8,6 @@ import Shelly
 import Options.Applicative
 
 import Prelude hiding (FilePath)
-import Control.Monad (forM_)
 import Data.Monoid ((<>))
 import Options.Utils (text, filePathOption)
 import qualified Data.Text as T
@@ -37,32 +36,10 @@ main = do
 --
 -- Accepts 'Dm' instance and forwards to 'dm' function
 execShelly :: Dm -> IO ()
-execShelly opts = shelly
+execShelly (Dm c v l command optargs) = shelly
   $ escaping False
-  $ subVerbosity (dmVerbose opts)
-  $ let (Dm path _ local command optargs) = opts
-     in dockmaster path local command optargs
-
--- | Runs @docker-compose@ commands against resolved composition locations
--- See usage docs for more info. Tries to find a @dockmaster.yml@ file based on
--- the initial path argument
-dockmaster :: FilePath -> Bool -> T.Text -> [T.Text] -> Sh ()
-dockmaster path local command args = do
-  eWd <- getWorkDir path
-  either dmcError dmExec eWd where
-    dmcError WorkDirNotFound     = errorExit "Could not resolve dockmaster working directory."
-    dmcError (DecodingError err) = echo_err "Failed to parse dm configuration." >> errorExit err
-    dmExec wd = sub $ do
-      cd wd
-      dmYml <- dockmasterYml
-      case dmYml of
-        Left err    -> echo_err "Failed to parse dockmaster.yml." >> errorExit err
-        Right dmYml -> do
-          prepareEnv dmYml
-          let hookwrap = hookWrap' dmYml command $ dockercompose dmYml $ command : args
-              targets = map targetName $ dmTargets dmYml -- just grabbing machine name
-          if local then hookwrap else
-            forM_ targets $ \m -> dockermachine m hookwrap
+  $ subVerbosity v
+  $ dockmaster c l command optargs
 
 -- | Accepts a verbosity setting for the subshell
 -- Propogates verbosity to printing options for commands, stdout, stderr

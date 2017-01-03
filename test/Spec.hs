@@ -62,8 +62,7 @@ main = hspec $
 
   describe "Environment interaction" $ do
     txt <- runIO $ shelly $ silently $ errExit False $ do
-      cd robComposition
-      hookWrap "num" $ return ()
-      readfile "output/favnum.txt"
+      dockmaster robComposition True "num" []
+      readfile $ robComposition </> "output/favnum.txt"
     it "can propogate environment variables" $ do
       txt `shouldBe` "favorite number is 1\n"
