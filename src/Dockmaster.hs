@@ -34,10 +34,14 @@ import Control.Monad (forM_)
 import qualified Data.Text as T
 default (T.Text)
 
--- | Runs @docker-compose@ commands against resolved composition locations
+-- | Runs @docker-compose@ commands against resolved composition locations.
 -- See usage docs for more info. Tries to find a @dockmaster.yml@ file based on
--- the initial path argument
-dockmaster :: FilePath -> Bool -> T.Text -> [T.Text] -> Sh ()
+-- the initial path argument.
+dockmaster :: FilePath -- ^ Composition
+           -> Bool     -- ^ Local-only flag
+           -> T.Text   -- ^ Command
+           -> [T.Text] -- ^ Opts/args for Command
+           -> Sh ()
 dockmaster path local command args = do
   eWd <- getWorkDir path
   either dmcError dmExec eWd where
