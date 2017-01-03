@@ -26,11 +26,11 @@ nonExistingComposition :: FilePath
 nonExistingComposition = fromText "test/fixtures/compositions/NONEXISTENT"
 
 cleanup :: IO ()
-cleanup = shelly $ verbosely $ do
+cleanup = shelly $ silently $ do
   rm_rf $ robComposition </> "output"
 
 startup :: IO ()
-startup = shelly $ verbosely $ do
+startup = shelly $ silently $ do
   cd robComposition
   rm_rf "output"
   mkdir_p "output"
@@ -61,7 +61,7 @@ main = hspec $
       invalidWD `shouldBe` (Left WorkDirNotFound)
 
   describe "Environment interaction" $ do
-    txt <- runIO $ shelly $ verbosely $ errExit True $ do
+    txt <- runIO $ shelly $ silently $ errExit False $ do
       cd robComposition
       hookWrap "num" $ return ()
       readfile "output/favnum.txt"
