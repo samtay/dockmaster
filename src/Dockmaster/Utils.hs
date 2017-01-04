@@ -15,6 +15,7 @@ module Dockmaster.Utils
     testM
   -- * Sh and FilePath utils
   , getHomeDirectory
+  , getDmHomeDirectory
   , parsePath
   , parsePath'
   , toText
@@ -55,7 +56,7 @@ parsePath :: T.Text -> Sh FilePath
 parsePath path = do
   home   <- getHomeDirectory >>= toText
   dmHome <- getDmHomeDirectory >>= toText
-  let replace         = foldr (.) id $ map (\(old,new) -> T.replace old new) dirReplacements
+  let replace         = foldr (.) id $ map (uncurry T.replace) dirReplacements
       dirReplacements = [ ("~", home)
                         , ("$HOME", home)
                         , ("$DOCKMASTER_HOME", dmHome) ]
@@ -90,7 +91,7 @@ getDmHomeDirectory = do
 -- | Convenience method to append filepaths when one is wrapped in a monad
 infixr 4 </>>=
 (</>>=) :: (Monad m) => m FilePath -> FilePath -> m FilePath
-mFp </>>= fp = mFp <</>> (return fp)
+mFp </>>= fp = mFp <</>> return fp
 
 -- | Convenience method to append filepaths when both are wrapped in a monad
 infixr 5 <</>>

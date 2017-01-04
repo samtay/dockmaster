@@ -20,6 +20,8 @@ module Dockmaster
   -- * config.yml
   , module Dockmaster.Config.Types
   , module Dockmaster.Config.Parser
+  -- * miscellaneous helpers
+  , module Dockmaster.Utils
   ) where
 
 import Dockmaster.Types
@@ -27,6 +29,7 @@ import Dockmaster.Parser
 import Dockmaster.Compose
 import Dockmaster.Config.Types
 import Dockmaster.Config.Parser
+import Dockmaster.Utils
 
 import Shelly
 import Prelude hiding (FilePath)

@@ -3,18 +3,17 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Main where
 
--- Local packages
-import Dockmaster
-import Options.Utils
-
--- External packages
-import Shelly hiding (command)
+import Options.Utils (text)
 import Options.Applicative
-import Data.Either.Combinators
+import Shelly hiding (command)
 
--- Base packages
-import Prelude hiding (FilePath)
+import Dockmaster ((</>>=))
+import qualified Dockmaster as D
+import Data.Either.Combinators (fromLeft)
+import Data.Maybe (isJust)
 import Data.Monoid ((<>))
+import Control.Monad ((>=>))
+import Prelude hiding (FilePath)
 import qualified Data.Text as T
 
 default (T.Text)
@@ -42,11 +41,39 @@ data GetOptions = GetOptions
 
 -- | Main runtime
 main :: IO ()
-main = execParser opts >>= shelly . runtime 
+main = do
+  dmc <- execParser opts
+  shelly $ do
+    runInit
+    runDmc dmc
 
--- | Runtime shell execution
-runtime :: Dmc -> Sh ()
-runtime = undefined
+-- | Creates user configuration file in dockmaster home if it does not exist
+--
+-- The file is named @config.yml@ and by default is located in
+-- @~/.dockmaster@ but can be overridden via @DOCKMASTER_HOME@.
+runInit :: Sh ()
+runInit = do
+  mPath <- D.resolvePath
+  cPath <- D.getDmHomeDirectory </>>= "config.yml"
+  when (isJust mPath) $ do
+    let (Just p) = mPath
+    when (p /= cPath) $ return undefined
+
+-- | Runtime dmc execution
+runDmc :: Dmc -> Sh ()
+runDmc (Set     (SetOptions n v)) = runSave n v
+runDmc (Get     (GetOptions n))   = runGet n
+runDmc (Unshift (SetOptions n v)) = runUnshift n v
+runDmc (Shift   (GetOptions n))   = runShift n
+runDmc (Push    (SetOptions n v)) = runPush n v
+runDmc (Pop     (GetOptions n))   = runPop n
+
+runSave = undefined
+runGet = undefined
+runUnshift = undefined
+runShift = undefined
+runPush = undefined
+runPop = undefined
 
 -- | Parser for /set/ commands
 setOptions :: ReadM T.Text -> Parser SetOptions
@@ -69,13 +96,25 @@ arrfield = eitherReader inConfigArr
 
 -- | Parse argument for any value type
 inConfig :: String -> Either String T.Text
-inConfig "PATHS" = Right "PATHS"
-inConfig arg     = Left $ arg ++ " is not a valid config field."
+inConfig field
+  | field `elem` validFields = Right $ T.pack field
+  | otherwise                = Left $ field ++ " is not a valid config field."
 
 -- | Parse argument for array value type
 inConfigArr :: String -> Either String T.Text
-inConfigArr "PATHS" = Right "PATHS"
-inConfigArr arg     = Left $ fromLeft (arg ++ " is not an array type.") (inConfig arg)
+inConfigArr = inConfig >=> (isArr . T.unpack)
+  where
+    isArr field
+      | field `elem` validArrFields = Right $ T.pack field
+      | otherwise                   = Left $ field ++ " is not an array type."
+
+-- | Valid fields
+validFields :: [String]
+validFields = map T.unpack D.configFields
+
+-- | Valid array fields
+validArrFields :: [String]
+validArrFields = map T.unpack D.arrayFields
 
 -- | Parser for 'Dmc'.
 parser :: Parser Dmc
@@ -113,3 +152,4 @@ commandInfo :: Parser Dmc -> String -> ParserInfo Dmc
 commandInfo opts desc = info
   (helper <*> opts)
   (fullDesc <> progDesc desc)
+
