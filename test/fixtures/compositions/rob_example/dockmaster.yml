@@ -8,8 +8,8 @@ commands:
   num:
     run_compose: false
     pre_hooks:
-      - shell: mkdir test/output
-      - shell: echo "robs favorite number is $ROBS_FAVORITE_NUM" > test/output/favnum.txt
+      - shell: mkdir -p output
+      - shell: echo "favorite number is $ROBS_FAVORITE_NUM" > output/favnum.txt
   push:
     help: My help text
     run_compose: false

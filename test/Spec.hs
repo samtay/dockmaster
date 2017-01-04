@@ -19,14 +19,28 @@ validFiles = ls $ fromText "test/fixtures/valid"
 invalidFiles :: Sh [FilePath]
 invalidFiles = ls $ fromText "test/fixtures/invalid"
 
-existingComposition :: FilePath
-existingComposition = fromText "test/fixtures/compositions/exists"
+robComposition :: FilePath
+robComposition = fromText "test/fixtures/compositions/rob_example"
 
 nonExistingComposition :: FilePath
 nonExistingComposition = fromText "test/fixtures/compositions/NONEXISTENT"
 
+cleanup :: IO ()
+cleanup = shelly $ silently $ do
+  rm_rf $ robComposition </> "output"
+
+startup :: IO ()
+startup = shelly $ silently $ do
+  cd robComposition
+  rm_rf "output"
+  mkdir_p "output"
+  touchfile $ "output" </> "favnum.txt"
+
 main :: IO ()
-main = hspec $ do
+main = hspec $
+      beforeAll_ startup
+    . afterAll_ cleanup
+  $ do
 
   describe "Parsing dockmaster.yml files" $ do
     validFiles   <- runIO $ shelly $ validFiles >>= mapM parseYml 
@@ -39,19 +53,16 @@ main = hspec $ do
         file `shouldSatisfy` isLeft
 
   describe "Relative workdir resolution" $ do
-    validWD   <- runIO $ shelly $ silently $ getWorkDir' baseConfig existingComposition
+    validWD   <- runIO $ shelly $ silently $ getWorkDir' baseConfig robComposition
     invalidWD <- runIO $ shelly $ silently $ getWorkDir' baseConfig nonExistingComposition
     it "should resolve existing compositions" $ do
-      validWD `shouldBe` (Right existingComposition)
+      validWD `shouldBe` (Right robComposition)
     it "should fail appropriately" $ do
-      invalidWD `shouldBe` workDirNotFound
+      invalidWD `shouldBe` (Left WorkDirNotFound)
 
   describe "Environment interaction" $ do
-    it "should successfully execute locally" $ do
-      pendingWith "SAM needs to add --local flag so we can test dm"
+    txt <- runIO $ shelly $ silently $ errExit False $ do
+      dockmaster robComposition True "num" []
+      readfile $ robComposition </> "output/favnum.txt"
     it "can propogate environment variables" $ do
-      pendingWith "SAM needs to add --local flag so we can test dm"
-
--- After adding --local flag and testing dm execution,
--- we can then test if env variables were written to output dir correctly,
--- and then do an hspec cleanup via "afterAll_"
+      txt `shouldBe` "favorite number is 1\n"

@@ -12,7 +12,7 @@ Portability : POSIX
 module Dockmaster
   (
   -- * Runtime execution
-    dm
+    dockmaster
   -- * dockmaster.yml
   , module Dockmaster.Types
   , module Dockmaster.Parser
@@ -22,39 +22,39 @@ module Dockmaster
   , module Dockmaster.Config.Parser
   ) where
 
--- Base modules
-import Data.Either
-import Data.Monoid ((<>))
-import Control.Monad
-
--- Local modules
 import Dockmaster.Types
-import Dockmaster.Config.Types
 import Dockmaster.Parser
-import Dockmaster.Config.Parser
 import Dockmaster.Compose
+import Dockmaster.Config.Types
+import Dockmaster.Config.Parser
 
--- External modules
 import Shelly
 import Prelude hiding (FilePath)
+import Control.Monad (forM_)
 import qualified Data.Text as T
 default (T.Text)
 
--- | Runs @docker-compose@ commands against resolved composition locations
+-- | Runs @docker-compose@ commands against resolved composition locations.
 -- See usage docs for more info. Tries to find a @dockmaster.yml@ file based on
--- the initial path argument
-dm :: FilePath -> T.Text -> [T.Text] -> Sh ()
-dm path command args = do
+-- the initial path argument.
+dockmaster :: FilePath -- ^ Composition
+           -> Bool     -- ^ Local-only flag
+           -> T.Text   -- ^ Command
+           -> [T.Text] -- ^ Opts/args for Command
+           -> Sh ()
+dockmaster path local command args = do
   eWd <- getWorkDir path
-  case eWd of
-    Left err -> errorExit err
-    Right wd -> sub $ do
+  either dmcError dmExec eWd where
+    dmcError WorkDirNotFound     = errorExit "Could not resolve dockmaster working directory."
+    dmcError (DecodingError err) = echo_err "Failed to parse dm configuration." >> errorExit err
+    dmExec wd = sub $ do
       cd wd
       dmYml <- dockmasterYml
       case dmYml of
-        Left err    -> echo_err "Failed to parse dockmaster.yml:\n" >> errorExit err
+        Left err    -> echo_err "Failed to parse dockmaster.yml." >> errorExit err
         Right dmYml -> do
           prepareEnv dmYml
-          let targets = map targetName $ dmTargets dmYml -- just grabbing machine name
-          forM_ targets $ \m -> dockermachine m $ do
-            hookWrap' dmYml command $ dockercompose dmYml $ command : args
+          let hookwrap = hookWrap' dmYml command $ dockercompose dmYml $ command : args
+              targets = map targetName $ dmTargets dmYml -- just grabbing machine name
+          if local then hookwrap else
+            forM_ targets $ \m -> dockermachine m hookwrap
