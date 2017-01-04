@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Main where
 
-import Options.Utils (text)
+import Options.Utils (text, execParser')
 import Options.Applicative
 import Shelly hiding (command)
 
@@ -42,7 +42,7 @@ data GetOptions = GetOptions
 -- | Main runtime
 main :: IO ()
 main = do
-  dmc <- execParser opts
+  dmc <- execParser' opts
   shelly $ do
     runInit
     runDmc dmc
@@ -152,4 +152,3 @@ commandInfo :: Parser Dmc -> String -> ParserInfo Dmc
 commandInfo opts desc = info
   (helper <*> opts)
   (fullDesc <> progDesc desc)
-

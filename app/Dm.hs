@@ -10,7 +10,7 @@ import Options.Applicative
 import Prelude hiding (FilePath)
 import Data.Monoid ((<>))
 import Control.Monad (join)
-import Options.Utils (text, filePathOption)
+import Options.Utils (text, filePathOption, execParser')
 import qualified Data.Text as T
 
 default (T.Text)
@@ -23,7 +23,7 @@ main :: IO ()
 main = do
   envCompDir <- shelly $ get_env "DOCKMASTER_COMPOSITION"
   let defaultCompDir = maybe "." T.unpack envCompDir
-  join . execParser $
+  join . execParser' $
     info (helper <*> parser defaultCompDir)
     (  fullDesc
     <> progDesc "Orchestrate your docker-compose"

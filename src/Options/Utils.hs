@@ -12,12 +12,17 @@ Portability : POSIX
 module Options.Utils where
 
 import Options.Applicative
+
 import Shelly (FilePath, fromText)
 import Prelude hiding (FilePath)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 
 default (T.Text)
+
+-- | Custom parser to show help on error
+execParser' :: ParserInfo a -> IO a
+execParser' = customExecParser (prefs showHelpOnError)
 
 -- | 'Text' option
 textOption :: Mod OptionFields String -> Parser T.Text
