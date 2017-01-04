@@ -26,6 +26,7 @@ data Dmc
   | Shift   GetOptions
   | Push    SetOptions
   | Pop     GetOptions
+  | Cat
   deriving (Eq, Show)
 
 -- | Arguments necessary for setting value
@@ -67,6 +68,7 @@ runDmc (Unshift (SetOptions n v)) = runUnshift n v
 runDmc (Shift   (GetOptions n))   = runShift n
 runDmc (Push    (SetOptions n v)) = runPush n v
 runDmc (Pop     (GetOptions n))   = runPop n
+runDmc Cat                        = runCat
 
 runSave = undefined
 runGet = undefined
@@ -74,6 +76,7 @@ runUnshift = undefined
 runShift = undefined
 runPush = undefined
 runPop = undefined
+runCat = undefined
 
 -- | Parser for /set/ commands
 setOptions :: ReadM T.Text -> Parser SetOptions
@@ -138,6 +141,9 @@ parser = subparser
   <> (command "pop" $ commandInfo
        (Pop <$> getOptions)
        "Pop value (for arrays)")
+  <> (command "cat" $ commandInfo
+       (pure Cat)
+       ("Cat full configuration"))
   ) 
 
 -- | Generate 'ParserInfo' for 'Dmc'.
