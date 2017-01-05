@@ -15,9 +15,10 @@ import qualified Data.Yaml as Y
 import qualified Data.HashMap.Lazy as HM
 import Data.Either.Combinators (fromLeft)
 import Data.Maybe (isJust)
-import Data.Monoid ((<>))
+import Data.Monoid ((<>), mappend)
 import Data.List ((\\))
 import Control.Monad ((>=>), forM_)
+import qualified Data.Vector as V
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -86,15 +87,7 @@ runDmc Ls                         = runLs
 runSet :: T.Text -> T.Text -> Sh ()
 runSet n v = do
   cfg <- configO
-  let newCfg = HM.fromList [(n, read' n v)] <> cfg
-  case J.fromJSON (Y.Object newCfg) of
-    J.Error err   -> do
-      echo_err "Could not convert to valid configuration"
-      D.errorExit' (T.pack err)
-    J.Success cfg -> do
-      save cfg
-      echo "Saved successfully"
-      exit 0
+  saveO $ HM.fromList [(n, read' n v)] <> cfg
 
 -- | Get value
 runGet :: T.Text -> Sh ()
@@ -104,10 +97,13 @@ runGet n = do
     Nothing  -> D.errorExit' $ n `T.append` " field not found"
     (Just v) -> echo (show' v) >> exit 0
 
-runUnshift = undefined
-runShift = undefined
-runPush = undefined
-runPop = undefined
+-- | Unshift array value(s)
+runUnshift :: T.Text -> T.Text -> Sh ()
+runUnshift = runAddToArray mappend
+
+-- | Push array value(s)
+runPush :: T.Text -> T.Text -> Sh ()
+runPush = runAddToArray (flip mappend)
 
 -- | Print the full current configuration yaml
 runCat :: Sh ()
@@ -124,11 +120,36 @@ runLs = do
       mapM_ echo fs
       echo ""
 
--- | Save a 'Config' instance to user config file
+runShift = undefined
+runPop = undefined
+
+runAddToArray :: (Y.Array -> Y.Array -> Y.Array) -> T.Text -> T.Text -> Sh ()
+runAddToArray (<:>) n v = do
+  cfg <- configO
+  let mVal           = HM.lookup n cfg
+      (Y.Array addV) = read' n v
+      oldV           = case mVal of
+                        Just (Y.Array vec) -> vec
+                        _                  -> V.empty
+
+      newV = Y.Array (addV <:> oldV)
+  saveO $ HM.fromList [(n, newV)] <> cfg
+
 save :: D.Config -> Sh ()
 save cfg = do
   cPath <- configFP
   writeBinary cPath $ Y.encode cfg
+
+-- | Save an 'Object' instance to user config file
+saveO :: Y.Object -> Sh ()
+saveO obj =
+  case J.fromJSON (Y.Object obj) of
+    J.Error err   -> do
+      echo_err "Could not convert to valid configuration"
+      D.errorExit' (T.pack err)
+    J.Success cfg -> do
+      save cfg
+      echo "Saved successfully"
 
 -- | Get path to dockmaster home config file
 configFP :: Sh FilePath
