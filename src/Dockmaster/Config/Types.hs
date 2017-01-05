@@ -18,6 +18,7 @@ import qualified Filesystem.Path.CurrentOS as FP
 
 -- | Dockmaster configuration
 data Config = Config { dmcPaths :: [FilePath] }
+  deriving (Eq,Show)
 
 pathsField :: T.Text
 pathsField = "PATHS"
@@ -34,8 +35,8 @@ instance FromJSON FilePath where
 
 -- | Instance to parse dockmaster configuration file
 instance FromJSON Config where
-  parseJSON (Object v) = Config
-                       <$> (v .:? pathsField.!= [])
+  parseJSON (Object v) = Config <$> (v .:? pathsField .!= [])
+  parseJSON _          = fail "Top level configuration should be a hashmap."
 
 -- | Custom instance to parse 'FilePath' directly into 'Text'
 instance ToJSON FilePath where

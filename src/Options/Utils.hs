@@ -30,7 +30,10 @@ textOption = fmap T.pack . strOption
 
 -- | 'Text' argument type
 text :: ReadM T.Text
-text = str >>= return . T.pack
+text = fmap T.pack str
+
+filepath :: ReadM FilePath
+filepath = fmap fromText text
 
 -- | 'FilePath' option
 filePathOption :: Mod OptionFields String -> Parser FilePath

@@ -3,12 +3,16 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Main where
 
-import Options.Utils (text, execParser')
 import Options.Applicative
 import Shelly hiding (command)
 
+import Options.Utils (text, execParser')
 import Dockmaster ((</>>=))
 import qualified Dockmaster as D
+import qualified Data.Aeson as J
+import Data.Yaml ((.=))
+import qualified Data.Yaml as Y
+import qualified Data.HashMap.Lazy as HM
 import Data.Either.Combinators (fromLeft)
 import Data.Maybe (isJust)
 import Data.Monoid ((<>))
@@ -55,14 +59,18 @@ main = do
 runInit :: Sh ()
 runInit = do
   mPath <- D.resolvePath
-  cPath <- D.getDmHomeDirectory </>>= "config.yml"
-  when (isJust mPath) $ do
-    let (Just p) = mPath
-    when (p /= cPath) $ return undefined
+  cPath <- configFP
+  -- Dont overwrite existing config file
+  unlessM (test_e cPath) $
+    case mPath of
+      -- Put empty config file in dm home
+      Nothing -> save D.baseConfig
+      -- Copy default config file to dm home
+      Just p -> unless (p == cPath) $ cp p cPath
 
 -- | Runtime dmc execution
 runDmc :: Dmc -> Sh ()
-runDmc (Set     (SetOptions n v)) = runSave n v
+runDmc (Set     (SetOptions n v)) = runSet n v
 runDmc (Get     (GetOptions n))   = runGet n
 runDmc (Unshift (SetOptions n v)) = runUnshift n v
 runDmc (Shift   (GetOptions n))   = runShift n
@@ -70,13 +78,64 @@ runDmc (Push    (SetOptions n v)) = runPush n v
 runDmc (Pop     (GetOptions n))   = runPop n
 runDmc Cat                        = runCat
 
-runSave = undefined
-runGet = undefined
+-- | Set value
+runSet :: T.Text -> T.Text -> Sh ()
+runSet n v = do
+  cfgO <- configO
+  let newCfg = HM.fromList [(n, parse n v)] <> cfgO
+  case J.fromJSON (Y.Object newCfg) of
+    J.Error err   -> do
+      echo_err "Could not convert to valid configuration"
+      D.errorExit' (T.pack err)
+    J.Success cfg -> do
+      save cfg
+      echo "Saved successfully"
+      exit 0
+
+-- | Get value
+runGet n = do
+  cfgO <- configO
+  undefined
+--   maybe (lookup
+
 runUnshift = undefined
 runShift = undefined
 runPush = undefined
 runPop = undefined
 runCat = undefined
+
+-- | Save a 'Config' instance to user config file
+save :: D.Config -> Sh ()
+save cfg = do
+  cPath <- configFP
+  writeBinary cPath $ Y.encode cfg
+
+-- | Get path to dockmaster home config file
+configFP :: Sh FilePath
+configFP = D.getDmHomeDirectory </>>= "config.yml"
+
+-- | Get config from dockmaster home
+config :: Sh D.Config
+config = do
+  contents <- configFP >>= readBinary
+  case Y.decodeEither contents :: Either String D.Config of
+    Left err  -> do
+      echo_err $ T.unlines [decodeErrorMsg, T.pack err]
+      quietExit 1
+    Right cfg -> return cfg
+
+-- | Get config as aeson object from dockmaster home
+configO :: Sh Y.Object
+configO = do
+  val <- fmap Y.toJSON config
+  case val of
+    Y.Object obj -> return obj
+    _            -> echo_err decodeErrorMsg >> exit 1
+-- TODO
+parse :: T.Text -> T.Text -> Y.Value
+parse n v
+  | n `elem` D.arrayFields = Y.toJSON $ filter (/= T.empty) $ T.splitOn ":" v
+  | otherwise              = Y.toJSON v
 
 -- | Parser for /set/ commands
 setOptions :: ReadM T.Text -> Parser SetOptions
@@ -85,39 +144,29 @@ setOptions optType = SetOptions
   <*> argument text (metavar "VALUE" <> help "Value to add/set")
 
 -- | Parser for /get/ commands
-getOptions :: Parser GetOptions
-getOptions = GetOptions
-  <$> argument anyfield (metavar "NAME" <> help "Name of the setting to retrieve")
+getOptions :: ReadM T.Text -> Parser GetOptions
+getOptions optType = GetOptions
+  <$> argument optType (metavar "NAME" <> help "Name of the setting to retrieve")
 
 -- | Reader for any config fields
 anyfield :: ReadM T.Text
-anyfield = eitherReader inConfig
+anyfield = text >>= inConfig
 
 -- | Reader for array config fields
 arrfield :: ReadM T.Text
-arrfield = eitherReader inConfigArr
+arrfield = text >>= inConfig >>= inConfigArr
 
 -- | Parse argument for any value type
-inConfig :: String -> Either String T.Text
+inConfig :: T.Text -> ReadM T.Text
 inConfig field
-  | field `elem` validFields = Right $ T.pack field
-  | otherwise                = Left $ field ++ " is not a valid config field."
+  | field `elem` D.configFields = return field
+  | otherwise                   = readerError $ (T.unpack field) ++ " is not a valid config field."
 
 -- | Parse argument for array value type
-inConfigArr :: String -> Either String T.Text
-inConfigArr = inConfig >=> (isArr . T.unpack)
-  where
-    isArr field
-      | field `elem` validArrFields = Right $ T.pack field
-      | otherwise                   = Left $ field ++ " is not an array type."
-
--- | Valid fields
-validFields :: [String]
-validFields = map T.unpack D.configFields
-
--- | Valid array fields
-validArrFields :: [String]
-validArrFields = map T.unpack D.arrayFields
+inConfigArr :: T.Text -> ReadM T.Text
+inConfigArr field
+  | field `elem` D.arrayFields = return field
+  | otherwise                  = readerError $ (T.unpack field) ++ " is not an array type."
 
 -- | Parser for 'Dmc'.
 parser :: Parser Dmc
@@ -127,24 +176,24 @@ parser = subparser
        (Set <$> setOptions anyfield)
        "Set value")
   <> (command "get" $ commandInfo
-       (Get <$> getOptions)
+       (Get <$> getOptions anyfield)
        "Get value")
   <> (command "unshift" $ commandInfo
        (Unshift <$> setOptions arrfield)
        "Unshift value (for arrays)")
   <> (command "shift" $ commandInfo
-       (Shift <$> getOptions)
+       (Shift <$> getOptions arrfield)
        "Shift value (for arrays)")
   <> (command "push" $ commandInfo
        (Push <$> setOptions arrfield)
        "Push value (for arrays)")
   <> (command "pop" $ commandInfo
-       (Pop <$> getOptions)
+       (Pop <$> getOptions arrfield)
        "Pop value (for arrays)")
   <> (command "cat" $ commandInfo
        (pure Cat)
        ("Cat full configuration"))
-  ) 
+  )
 
 -- | Generate 'ParserInfo' for 'Dmc'.
 opts :: ParserInfo Dmc
@@ -158,3 +207,8 @@ commandInfo :: Parser Dmc -> String -> ParserInfo Dmc
 commandInfo opts desc = info
   (helper <*> opts)
   (fullDesc <> progDesc desc)
+
+decodeErrorMsg :: T.Text
+decodeErrorMsg = "Current configuration is invalid. Please delete the config file "
+                   `T.append` "and try again."
+

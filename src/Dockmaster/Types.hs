@@ -9,14 +9,13 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings #-}
 module Dockmaster.Types where
 
+import Data.Yaml
 import Dockmaster.Config.Types
 
-import Data.Yaml
-import Control.Applicative
-import Data.HashMap.Lazy (HashMap, lookup, member)
-import Data.Monoid
-import Shelly
-import Prelude hiding (lookup, FilePath)
+import Data.HashMap.Lazy (HashMap, member)
+import Data.Monoid ((<>))
+import Shelly (FilePath)
+import Prelude hiding (FilePath)
 import qualified Data.Text as T
 
 -- | Dockmaster configuration (specified by dockmaster.yml)
