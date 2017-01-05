@@ -40,7 +40,7 @@ data Dmc
 -- | Arguments necessary for modifying value
 data SetOptions = SetOptions
   { sName  :: T.Text
-  , sValue :: T.Text
+  , sValue :: [T.Text]
   } deriving (Eq, Show)
 
 -- | Arguments necessary for getting value
@@ -90,11 +90,13 @@ runDmc Cat                         = runCat
 runDmc Ls                          = runLs
 
 -- | Set value
-runSet :: T.Text -> T.Text -> Sh ()
+runSet :: T.Text -> [T.Text] -> Sh ()
 runSet n v = do
   cfg <- configO
+  val <- read' n v
   -- Overwrite (n, v)
-  saveO $ HM.fromList [(n, read' n v)] <> cfg
+  saveO $ HM.fromList [(n, val)] <> cfg
+  recap n
 
 -- | Get value
 runGet :: T.Text -> Sh ()
@@ -105,11 +107,11 @@ runGet n = do
     (Just v) -> echo (show' v) >> exit 0
 
 -- | Unshift array value(s)
-runUnshift :: T.Text -> T.Text -> Sh ()
+runUnshift :: T.Text -> [T.Text] -> Sh ()
 runUnshift n v = runAddToArray mappend n v >> recap n
 
 -- | Push array value(s)
-runPush :: T.Text -> T.Text -> Sh ()
+runPush :: T.Text -> [T.Text] -> Sh ()
 runPush n v = runAddToArray (flip mappend) n v >> recap n
 
 -- | Shift array value(s)
@@ -138,10 +140,10 @@ runLs = do
       echo ""
 
 -- | Takes a binary operation and uses it on the argument value and current value
-runAddToArray :: (Y.Array -> Y.Array -> Y.Array) -> T.Text -> T.Text -> Sh ()
-runAddToArray addOp n v =
-  let (Y.Array argV) = read' n v
-   in runModArray (addOp argV) n
+runAddToArray :: (Y.Array -> Y.Array -> Y.Array) -> T.Text -> [T.Text] -> Sh ()
+runAddToArray addOp n v = do
+  (Y.Array argV) <- read' n v
+  runModArray (addOp argV) n
 
 -- | Performs an arbitrary operation on the current array value and saves it
 runModArray :: (Y.Array -> Y.Array) -> T.Text -> Sh ()
@@ -198,10 +200,16 @@ configO = do
     _            -> D.errorExit' decodeErrorMsg
 
 -- | Read cli values that get marshalled into config yaml
-read' :: T.Text -> T.Text -> Y.Value
+--
+-- Only array fields can have more than one value argument
+read' :: T.Text -> [T.Text] -> Sh Y.Value
 read' n v
-  | n `elem` D.arrayFields = Y.toJSON $ filter (/= T.empty) $ T.splitOn ":" v
-  | otherwise              = Y.toJSON v
+  | n `elem` D.arrayFields = return $ Y.toJSON v
+  | otherwise              =
+    case length v of
+      0 -> return $ Y.toJSON ""
+      1 -> return $ Y.toJSON $ head v
+      _ -> D.errorExit' "Cannot set multiple values to a non-array field"
 
 -- | Show config yaml values to in cli friendly format
 show' :: Y.Value -> T.Text
@@ -211,8 +219,8 @@ show' = T.decodeUtf8 . Y.encode
 setOptions :: ReadM T.Text -> Parser SetOptions
 setOptions optType = SetOptions
   <$> argument optType (metavar "NAME" <> help "Name of the setting to modify")
-  <*> argument text (metavar "VALUE" <> help ("Value to add/set. "
-        ++ "Hint: You can use ':' to delimit array items"))
+  <*> some (argument text (metavar "VALUE" <> help ("Value(s) to add/set. "
+        ++ "Hint: You can use multiple values for array types.")))
 
 -- | Parser for /get/ commands
 getOptions :: Parser GetOptions
@@ -244,7 +252,7 @@ inConfig field
 inConfigArr :: T.Text -> ReadM T.Text
 inConfigArr field
   | field `elem` D.arrayFields = return field
-  | otherwise                  = readerError $ (T.unpack field) ++ " is not an array type."
+  | otherwise                  = readerError $ (T.unpack field) ++ " is not an array type. "
                                    ++ "Try the 'ls' command for help."
 
 -- | Parser for 'Dmc'.
