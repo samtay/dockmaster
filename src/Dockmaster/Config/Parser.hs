@@ -16,20 +16,18 @@ module Dockmaster.Config.Parser
   -- * Getting global config
   , config
   , baseConfig
+  , resolvePath
 
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
   ) where
 
--- Local modules
 import Dockmaster.Config.Types
 import Dockmaster.Utils
-
--- External modules
-import Data.Yaml
-import qualified Data.ByteString as BS
 import Shelly
+
+import Data.Yaml (decodeEither)
 import Prelude hiding (FilePath, log)
 import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
@@ -54,8 +52,8 @@ config :: Sh (Either DmcError Config)
 config = do
   mPath <- resolvePath
   case mPath of
-    Nothing     -> return $ Right baseConfig
-    (Just path) -> do
+    Nothing   -> return $ Right baseConfig
+    Just path -> do
       contents <- readBinary path
       case decodeEither contents :: Either String Config of
         Left err  -> return . Left . DecodingError $ T.pack err
@@ -73,10 +71,10 @@ baseConfig = Config { dmcPaths = [] }
 resolvePath :: Sh (Maybe FilePath)
 resolvePath = do
   envPathT  <- get_env "DOCKMASTER_CONFIG"
-  homePath  <- testM test_e $ getHomeDirectory </>>= ".dockmaster" </> "config.yml"
+  homePath  <- testM test_e $ getDmHomeDirectory </>>= "config.yml"
   etcPath   <- testM test_e $ return "/etc" </>>= "dockmaster" </> "config.yml"
-  return $
-    getFirst . mconcat $ map First [fmap fromText envPathT, homePath, etcPath]
+  return . getFirst $
+    foldMap First [fmap fromText envPathT, homePath, etcPath]
 
 -- | Parse the paths specified in configuration
 --
@@ -84,7 +82,7 @@ resolvePath = do
 parseConfig :: Config -> Sh Config
 parseConfig cfg = do
   parsedPaths <- mapM (toText >=> parsePath) (dmcPaths cfg)
-  return $ Config { dmcPaths = parsedPaths }
+  return Config { dmcPaths = parsedPaths }
 
 ---------- dm workdir functions ----------
 

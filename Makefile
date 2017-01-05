@@ -127,6 +127,17 @@ _mkrelease: _release_check $(NAMESPACE)
     curl -sL -H "Authorization: token $(GH_TOKEN)" -H "Content-Type: text/x-shellscript" --data-binary @"dist/dmc" -X POST $(GH_UPLOAD_URL)/repos/$(GH_PROJECT)/releases/$$id/assets?name=dmc &>/dev/null ; \
 	)
 
+	$(info * publishing to get.iceburg.net/$(NAMESPACE)/latest-$(RELEASE_BRANCH)/)
+	@( \
+                set -e ; \
+          cd $(CURDIR)/dist ; \
+                for file in * ; do \
+                  echo "# @$(NAMESPACE)_UPDATE_URL=http://get.iceburg.net/$(NAMESPACE)/latest-$(RELEASE_BRANCH)/$$file" >> $$file ; \
+                done ; \
+                drclone sync . iceburg_s3:get.iceburg.net/$(NAMESPACE)/latest-$(RELEASE_BRANCH) ; \
+        )
+
+
 #
 # sanity checks
 .PHONY: _release_check _gh_check _wc_check

@@ -31,7 +31,6 @@ import Dockmaster.Types
 import Data.Yaml
 import Data.Maybe
 import Control.Monad ((<=<))
-import qualified Data.ByteString as BS
 import Data.HashMap.Lazy (HashMap, lookup, member, toList)
 import Data.Either.Combinators (mapBoth)
 import Data.Monoid ((<>), mconcat, First(..))
@@ -76,7 +75,7 @@ hookWrap :: T.Text -> Sh () -> Sh ()
 hookWrap dcCmd action = do
   dmYml <- dockmasterYml
   either
-    errorExit -- Exit on dockmaster.yml parsing failure
+    errorExit' -- Exit on dockmaster.yml parsing failure
     (\cfg -> sub $ prepareEnv cfg >> hookWrap' cfg dcCmd action) -- Otherwise execute hooks & action
     dmYml
 

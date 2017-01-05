@@ -20,6 +20,8 @@ module Dockmaster
   -- * config.yml
   , module Dockmaster.Config.Types
   , module Dockmaster.Config.Parser
+  -- * miscellaneous helpers
+  , module Dockmaster.Utils
   ) where
 
 import Dockmaster.Types
@@ -27,6 +29,7 @@ import Dockmaster.Parser
 import Dockmaster.Compose
 import Dockmaster.Config.Types
 import Dockmaster.Config.Parser
+import Dockmaster.Utils
 
 import Shelly
 import Prelude hiding (FilePath)
@@ -45,13 +48,13 @@ dockmaster :: FilePath -- ^ Composition
 dockmaster path local command args = do
   eWd <- getWorkDir path
   either dmcError dmExec eWd where
-    dmcError WorkDirNotFound     = errorExit "Could not resolve dockmaster working directory."
-    dmcError (DecodingError err) = echo_err "Failed to parse dm configuration." >> errorExit err
+    dmcError WorkDirNotFound     = errorExit' "Could not resolve dockmaster working directory."
+    dmcError (DecodingError err) = echo_err "Failed to parse dm configuration." >> errorExit' err
     dmExec wd = sub $ do
       cd wd
       dmYml <- dockmasterYml
       case dmYml of
-        Left err    -> echo_err "Failed to parse dockmaster.yml." >> errorExit err
+        Left err    -> echo_err "Failed to parse dockmaster.yml." >> errorExit' err
         Right dmYml -> do
           prepareEnv dmYml
           let hookwrap = hookWrap' dmYml command $ dockercompose dmYml $ command : args

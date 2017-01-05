@@ -15,10 +15,12 @@ module Dockmaster.Utils
     testM
   -- * Sh and FilePath utils
   , getHomeDirectory
+  , getDmHomeDirectory
   , parsePath
   , parsePath'
   , toText
   , log
+  , errorExit'
   , (</>>=)
   , (<</>>)
   ) where
@@ -47,6 +49,10 @@ testM predM mx = do
 log :: T.Text -> Sh ()
 log msg = print_commands False $ run_ "echo" [msg]
 
+-- | A version of Shelly's 'errorExit' without debug information
+errorExit' :: T.Text -> Sh a
+errorExit' err = echo_err err >> quietExit 1
+
 -- | Accepts a path as 'Text' and returns a 'FilePath' path but with
 -- @~@ and @$HOME@ replaced with user home directory, and
 -- @$DOCKMASTER_HOME@ replaced with either env variable value
@@ -55,7 +61,7 @@ parsePath :: T.Text -> Sh FilePath
 parsePath path = do
   home   <- getHomeDirectory >>= toText
   dmHome <- getDmHomeDirectory >>= toText
-  let replace         = foldr (.) id $ map (\(old,new) -> T.replace old new) dirReplacements
+  let replace         = foldr (.) id $ map (uncurry T.replace) dirReplacements
       dirReplacements = [ ("~", home)
                         , ("$HOME", home)
                         , ("$DOCKMASTER_HOME", dmHome) ]
@@ -90,7 +96,7 @@ getDmHomeDirectory = do
 -- | Convenience method to append filepaths when one is wrapped in a monad
 infixr 4 </>>=
 (</>>=) :: (Monad m) => m FilePath -> FilePath -> m FilePath
-mFp </>>= fp = mFp <</>> (return fp)
+mFp </>>= fp = mFp <</>> return fp
 
 -- | Convenience method to append filepaths when both are wrapped in a monad
 infixr 5 <</>>
