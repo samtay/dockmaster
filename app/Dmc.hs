@@ -16,7 +16,8 @@ import qualified Data.HashMap.Lazy as HM
 import Data.Either.Combinators (fromLeft)
 import Data.Maybe (isJust)
 import Data.Monoid ((<>))
-import Control.Monad ((>=>))
+import Data.List ((\\))
+import Control.Monad ((>=>), forM_)
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -32,6 +33,7 @@ data Dmc
   | Push    SetOptions
   | Pop     GetOptions
   | Cat
+  | Ls
   deriving (Eq, Show)
 
 -- | Arguments necessary for setting value
@@ -78,12 +80,13 @@ runDmc (Shift   (GetOptions n))   = runShift n
 runDmc (Push    (SetOptions n v)) = runPush n v
 runDmc (Pop     (GetOptions n))   = runPop n
 runDmc Cat                        = runCat
+runDmc Ls                         = runLs
 
 -- | Set value
 runSet :: T.Text -> T.Text -> Sh ()
 runSet n v = do
-  cfgO <- configO
-  let newCfg = HM.fromList [(n, read' n v)] <> cfgO
+  cfg <- configO
+  let newCfg = HM.fromList [(n, read' n v)] <> cfg
   case J.fromJSON (Y.Object newCfg) of
     J.Error err   -> do
       echo_err "Could not convert to valid configuration"
@@ -105,7 +108,21 @@ runUnshift = undefined
 runShift = undefined
 runPush = undefined
 runPop = undefined
-runCat = undefined
+
+-- | Print the full current configuration yaml
+runCat :: Sh ()
+runCat = (show' . Y.Object <$> configO) >>= echo
+
+-- | List all available fields, broken down by value type
+runLs :: Sh ()
+runLs = do
+  let flatFields = D.configFields \\ D.arrayFields
+      fieldInfo = [("Flat", flatFields), ("Array", D.arrayFields)]
+  forM_ fieldInfo $
+    \(n, fs) -> unless (null fs) $ do
+      echo $ n `T.append` " config fields:"
+      mapM_ echo fs
+      echo ""
 
 -- | Save a 'Config' instance to user config file
 save :: D.Config -> Sh ()
@@ -168,13 +185,15 @@ arrfield = text >>= inConfig >>= inConfigArr
 inConfig :: T.Text -> ReadM T.Text
 inConfig field
   | field `elem` D.configFields = return field
-  | otherwise                   = readerError $ (T.unpack field) ++ " is not a valid config field."
+  | otherwise                   = readerError $ (T.unpack field) ++ " is not a valid config field. "
+                                    ++ "Try the 'ls' command for help."
 
 -- | Parse argument for array value type
 inConfigArr :: T.Text -> ReadM T.Text
 inConfigArr field
   | field `elem` D.arrayFields = return field
   | otherwise                  = readerError $ (T.unpack field) ++ " is not an array type."
+                                   ++ "Try the 'ls' command for help."
 
 -- | Parser for 'Dmc'.
 parser :: Parser Dmc
@@ -201,6 +220,9 @@ parser = subparser
   <> (command "cat" $ commandInfo
        (pure Cat)
        ("Cat full configuration"))
+  <> (command "ls" $ commandInfo
+       (pure Ls)
+       ("List available config fields"))
   )
 
 -- | Generate 'ParserInfo' for 'Dmc'.
