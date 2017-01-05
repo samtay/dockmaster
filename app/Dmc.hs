@@ -30,22 +30,28 @@ data Dmc
   = Set     SetOptions
   | Get     GetOptions
   | Unshift SetOptions
-  | Shift   GetOptions
   | Push    SetOptions
-  | Pop     GetOptions
+  | Shift   DropOptions
+  | Pop     DropOptions
   | Cat
   | Ls
   deriving (Eq, Show)
 
--- | Arguments necessary for setting value
+-- | Arguments necessary for modifying value
 data SetOptions = SetOptions
   { sName  :: T.Text
   , sValue :: T.Text
   } deriving (Eq, Show)
 
--- | Arguments necessary for getting value or shifting/popping array
+-- | Arguments necessary for getting value
 data GetOptions = GetOptions
   { gName  :: T.Text
+  } deriving (Eq, Show)
+
+-- | Arguments necessary for dropping array elements
+data DropOptions = DropOptions
+  { dName  :: T.Text
+  , dCount :: Int
   } deriving (Eq, Show)
 
 -- | Main runtime
@@ -74,19 +80,20 @@ runInit = do
 
 -- | Runtime dmc execution
 runDmc :: Dmc -> Sh ()
-runDmc (Set     (SetOptions n v)) = runSet n v
-runDmc (Get     (GetOptions n))   = runGet n
-runDmc (Unshift (SetOptions n v)) = runUnshift n v
-runDmc (Shift   (GetOptions n))   = runShift n
-runDmc (Push    (SetOptions n v)) = runPush n v
-runDmc (Pop     (GetOptions n))   = runPop n
-runDmc Cat                        = runCat
-runDmc Ls                         = runLs
+runDmc (Set     (SetOptions n v))  = runSet n v
+runDmc (Get     (GetOptions n))    = runGet n
+runDmc (Unshift (SetOptions n v))  = runUnshift n v
+runDmc (Push    (SetOptions n v))  = runPush n v
+runDmc (Shift   (DropOptions n c)) = runShift n c
+runDmc (Pop     (DropOptions n c)) = runPop n c
+runDmc Cat                         = runCat
+runDmc Ls                          = runLs
 
 -- | Set value
 runSet :: T.Text -> T.Text -> Sh ()
 runSet n v = do
   cfg <- configO
+  -- Overwrite (n, v)
   saveO $ HM.fromList [(n, read' n v)] <> cfg
 
 -- | Get value
@@ -94,16 +101,26 @@ runGet :: T.Text -> Sh ()
 runGet n = do
   cfgO <- configO
   case HM.lookup n cfgO of
-    Nothing  -> D.errorExit' $ n `T.append` " field not found"
+    Nothing  -> D.errorExit' $ T.unwords [n, "field not found"]
     (Just v) -> echo (show' v) >> exit 0
 
 -- | Unshift array value(s)
 runUnshift :: T.Text -> T.Text -> Sh ()
-runUnshift = runAddToArray mappend
+runUnshift n v = runAddToArray mappend n v >> recap n
 
 -- | Push array value(s)
 runPush :: T.Text -> T.Text -> Sh ()
-runPush = runAddToArray (flip mappend)
+runPush n v = runAddToArray (flip mappend) n v >> recap n
+
+-- | Shift array value(s)
+runShift :: T.Text -> Int -> Sh ()
+runShift n c = runModArray (V.drop c) n >> recap n
+
+-- | Pop array value(s)
+runPop :: T.Text -> Int -> Sh ()
+runPop n c = runModArray (pop c) n >> recap n
+  where pop c vec = let l = (V.length vec) - c
+                     in V.take l vec
 
 -- | Print the full current configuration yaml
 runCat :: Sh ()
@@ -116,31 +133,34 @@ runLs = do
       fieldInfo = [("Flat", flatFields), ("Array", D.arrayFields)]
   forM_ fieldInfo $
     \(n, fs) -> unless (null fs) $ do
-      echo $ n `T.append` " config fields:"
+      echo $ T.unwords [n, "config fields:"]
       mapM_ echo fs
       echo ""
 
-runShift = undefined
-runPop = undefined
-
+-- | Takes a binary operation and uses it on the argument value and current value
 runAddToArray :: (Y.Array -> Y.Array -> Y.Array) -> T.Text -> T.Text -> Sh ()
-runAddToArray (<:>) n v = do
+runAddToArray addOp n v =
+  let (Y.Array argV) = read' n v
+   in runModArray (addOp argV) n
+
+-- | Performs an arbitrary operation on the current array value and saves it
+runModArray :: (Y.Array -> Y.Array) -> T.Text -> Sh ()
+runModArray op n = do
   cfg <- configO
-  let mVal           = HM.lookup n cfg
-      (Y.Array addV) = read' n v
-      oldV           = case mVal of
-                        Just (Y.Array vec) -> vec
-                        _                  -> V.empty
+  let oldV = case HM.lookup n cfg of
+               Just (Y.Array vec) -> vec
+               _                  -> V.empty
+  saveO $ HM.fromList [(n, Y.Array (op oldV))] <> cfg
 
-      newV = Y.Array (addV <:> oldV)
-  saveO $ HM.fromList [(n, newV)] <> cfg
-
+-- | Save a 'Config' instance to the user config file
 save :: D.Config -> Sh ()
 save cfg = do
   cPath <- configFP
   writeBinary cPath $ Y.encode cfg
 
 -- | Save an 'Object' instance to user config file
+--
+-- This operation only succeeds when 'Object' is succesfully decoded to a 'Config' instance.
 saveO :: Y.Object -> Sh ()
 saveO obj =
   case J.fromJSON (Y.Object obj) of
@@ -150,6 +170,12 @@ saveO obj =
     J.Success cfg -> do
       save cfg
       echo "Saved successfully"
+
+-- | Show the new value for a field
+recap :: T.Text -> Sh ()
+recap n = do
+  echo $ T.unwords ["The new value for", n, "is:"]
+  runGet n
 
 -- | Get path to dockmaster home config file
 configFP :: Sh FilePath
@@ -189,9 +215,15 @@ setOptions optType = SetOptions
         ++ "Hint: You can use ':' to delimit array items"))
 
 -- | Parser for /get/ commands
-getOptions :: ReadM T.Text -> Parser GetOptions
-getOptions optType = GetOptions
-  <$> argument optType (metavar "NAME" <> help "Name of the setting to retrieve")
+getOptions :: Parser GetOptions
+getOptions = GetOptions
+  <$> argument anyfield (metavar "NAME" <> help "Name of the setting to retrieve")
+
+-- | Parser for /drop/ commands
+dropOptions :: Parser DropOptions
+dropOptions = DropOptions
+  <$> argument arrfield (metavar "NAME" <> help "Name of the array setting to modify")
+  <*> argument auto (metavar "COUNT" <> value 1 <> showDefault <> help "Number of values to drop")
 
 -- | Reader for any config fields
 anyfield :: ReadM T.Text
@@ -223,19 +255,19 @@ parser = subparser
        (Set <$> setOptions anyfield)
        "Set value")
   <> (command "get" $ commandInfo
-       (Get <$> getOptions anyfield)
+       (Get <$> getOptions)
        "Get value")
   <> (command "unshift" $ commandInfo
        (Unshift <$> setOptions arrfield)
        "Unshift value (for arrays)")
-  <> (command "shift" $ commandInfo
-       (Shift <$> getOptions arrfield)
-       "Shift value (for arrays)")
   <> (command "push" $ commandInfo
        (Push <$> setOptions arrfield)
        "Push value (for arrays)")
+  <> (command "shift" $ commandInfo
+       (Shift <$> dropOptions)
+       "Shift value (for arrays)")
   <> (command "pop" $ commandInfo
-       (Pop <$> getOptions arrfield)
+       (Pop <$> dropOptions)
        "Pop value (for arrays)")
   <> (command "cat" $ commandInfo
        (pure Cat)
@@ -259,6 +291,7 @@ commandInfo opts desc = info
   (fullDesc <> progDesc desc)
 
 decodeErrorMsg :: T.Text
-decodeErrorMsg = "Current configuration is invalid. Please delete the config file "
-                   `T.append` "and try again."
+decodeErrorMsg = T.unwords
+  [ "Current configuration is invalid. Please delete the config file"
+  , "and try again." ]
 
