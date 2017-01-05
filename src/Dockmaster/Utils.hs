@@ -20,6 +20,7 @@ module Dockmaster.Utils
   , parsePath'
   , toText
   , log
+  , errorExit'
   , (</>>=)
   , (<</>>)
   ) where
@@ -47,6 +48,10 @@ testM predM mx = do
 -- and 'Shelly.echo' prints stdout regardless of verbosity
 log :: T.Text -> Sh ()
 log msg = print_commands False $ run_ "echo" [msg]
+
+-- | A version of Shelly's 'errorExit' without debug information
+errorExit' :: T.Text -> Sh a
+errorExit' err = echo_err err >> quietExit 1
 
 -- | Accepts a path as 'Text' and returns a 'FilePath' path but with
 -- @~@ and @$HOME@ replaced with user home directory, and

@@ -72,7 +72,7 @@ baseConfig = Config { dmcPaths = [] }
 resolvePath :: Sh (Maybe FilePath)
 resolvePath = do
   envPathT  <- get_env "DOCKMASTER_CONFIG"
-  homePath  <- testM test_e $ getHomeDirectory </>>= ".dockmaster" </> "config.yml"
+  homePath  <- testM test_e $ getDmHomeDirectory </>>= "config.yml"
   etcPath   <- testM test_e $ return "/etc" </>>= "dockmaster" </> "config.yml"
   return . getFirst $
     foldMap First [fmap fromText envPathT, homePath, etcPath]

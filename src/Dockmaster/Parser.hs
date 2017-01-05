@@ -76,7 +76,7 @@ hookWrap :: T.Text -> Sh () -> Sh ()
 hookWrap dcCmd action = do
   dmYml <- dockmasterYml
   either
-    errorExit -- Exit on dockmaster.yml parsing failure
+    errorExit' -- Exit on dockmaster.yml parsing failure
     (\cfg -> sub $ prepareEnv cfg >> hookWrap' cfg dcCmd action) -- Otherwise execute hooks & action
     dmYml
 
