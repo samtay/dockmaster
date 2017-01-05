@@ -139,9 +139,7 @@ config :: Sh D.Config
 config = do
   contents <- configFP >>= readBinary
   case Y.decodeEither contents :: Either String D.Config of
-    Left err  -> do
-      echo_err $ T.unlines [decodeErrorMsg, T.pack err]
-      quietExit 1
+    Left err  -> D.errorExit' $ T.unlines [decodeErrorMsg, T.pack err]
     Right cfg -> return cfg
 
 -- | Get config as aeson object from dockmaster home
@@ -150,7 +148,7 @@ configO = do
   val <- fmap Y.toJSON config
   case val of
     Y.Object obj -> return obj
-    _            -> echo_err decodeErrorMsg >> exit 1
+    _            -> D.errorExit' decodeErrorMsg
 
 -- | Read cli values that get marshalled into config yaml
 read' :: T.Text -> T.Text -> Y.Value
@@ -166,7 +164,8 @@ show' = T.decodeUtf8 . Y.encode
 setOptions :: ReadM T.Text -> Parser SetOptions
 setOptions optType = SetOptions
   <$> argument optType (metavar "NAME" <> help "Name of the setting to modify")
-  <*> argument text (metavar "VALUE" <> help "Value to add/set")
+  <*> argument text (metavar "VALUE" <> help ("Value to add/set. "
+        ++ "Hint: You can use ':' to delimit array items"))
 
 -- | Parser for /get/ commands
 getOptions :: ReadM T.Text -> Parser GetOptions
