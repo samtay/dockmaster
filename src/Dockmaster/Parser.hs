@@ -31,7 +31,6 @@ import Dockmaster.Types
 import Data.Yaml
 import Data.Maybe
 import Control.Monad ((<=<))
-import qualified Data.ByteString as BS
 import Data.HashMap.Lazy (HashMap, lookup, member, toList)
 import Data.Either.Combinators (mapBoth)
 import Data.Monoid ((<>), mconcat, First(..))

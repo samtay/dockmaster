@@ -19,6 +19,7 @@ import Data.Monoid ((<>))
 import Control.Monad ((>=>))
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 default (T.Text)
 
@@ -82,7 +83,7 @@ runDmc Cat                        = runCat
 runSet :: T.Text -> T.Text -> Sh ()
 runSet n v = do
   cfgO <- configO
-  let newCfg = HM.fromList [(n, parse n v)] <> cfgO
+  let newCfg = HM.fromList [(n, read' n v)] <> cfgO
   case J.fromJSON (Y.Object newCfg) of
     J.Error err   -> do
       echo_err "Could not convert to valid configuration"
@@ -93,10 +94,12 @@ runSet n v = do
       exit 0
 
 -- | Get value
+runGet :: T.Text -> Sh ()
 runGet n = do
   cfgO <- configO
-  undefined
---   maybe (lookup
+  case HM.lookup n cfgO of
+    Nothing  -> D.errorExit' $ n `T.append` " field not found"
+    (Just v) -> echo (show' v) >> exit 0
 
 runUnshift = undefined
 runShift = undefined
@@ -131,11 +134,16 @@ configO = do
   case val of
     Y.Object obj -> return obj
     _            -> echo_err decodeErrorMsg >> exit 1
--- TODO
-parse :: T.Text -> T.Text -> Y.Value
-parse n v
+
+-- | Read cli values that get marshalled into config yaml
+read' :: T.Text -> T.Text -> Y.Value
+read' n v
   | n `elem` D.arrayFields = Y.toJSON $ filter (/= T.empty) $ T.splitOn ":" v
   | otherwise              = Y.toJSON v
+
+-- | Show config yaml values to in cli friendly format
+show' :: Y.Value -> T.Text
+show' = T.decodeUtf8 . Y.encode
 
 -- | Parser for /set/ commands
 setOptions :: ReadM T.Text -> Parser SetOptions

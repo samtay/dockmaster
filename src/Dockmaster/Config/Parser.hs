@@ -28,7 +28,6 @@ import Dockmaster.Utils
 import Shelly
 
 import Data.Yaml (decodeEither)
-import qualified Data.ByteString as BS
 import Prelude hiding (FilePath, log)
 import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
