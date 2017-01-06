@@ -176,6 +176,15 @@ $ dm -l -c runsOnNodeB logs
 ```
 
 #### configuration management
+The configuration file for dockmaster is found at runtime via the following files in order of precedence:
+
+1. `$DOCKMASTER_CONFIG`
+2. `$DOCKMASTER_HOME/config.yml`, where `$DOCKMASTER_HOME` defaults to user's `~/.dockmaster`
+3. `/etc/dockmaster/config.yml`
+
+`dmc` will never modify the global config and always prefers `$DOCKMASTER_HOME/config.yml`.
+If the file is not present, it will either be created with an empty configuration, or copy the current resolved configuration file, e.g. a possibly distributed `/etc/dockmaster/config.yml`.
+
 The `dmc --help` output is largely straightforward, but here are some examples anyway:
 ```shell
 # dmc ls will show you available config fields
