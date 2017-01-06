@@ -74,7 +74,7 @@ runInit = do
   unlessM (test_e cPath) $
     case mPath of
       -- Put empty config file in dm home
-      Nothing -> save D.baseConfig
+      Nothing -> D.getDmHomeDirectory >>= mkdir_p >> touchfile cPath >> save D.baseConfig
       -- Copy default config file to dm home
       Just p -> unless (p == cPath) $ cp p cPath
 
