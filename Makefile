@@ -47,6 +47,7 @@ uninstall:
 
 RELEASE_TAG ?= $(shell git rev-parse --abbrev-ref HEAD)
 RELEASE_SHA ?= $(shell git rev-parse --short HEAD)
+BUILD_OPTS =
 
 .PHONY: $(NAMESPACE) compile-%
 
@@ -62,7 +63,7 @@ compile-%: clean-%
 			--in-place=.bak \
 			src/Options/Utils.hs ; \
 		PATH="$(CURDIR)/dist:$$PATH" ; \
-	  stack install --system-ghc --local-bin-path dist dockmaster:exe:$* ; \
+	  stack install --system-ghc --local-bin-path dist $(BUILD_OPTS) dockmaster:exe:$* ; \
 	  mv src/Options/Utils.hs.bak src/Options/Utils.hs \
 	)
 
@@ -108,9 +109,11 @@ REMOTE_GH:=origin
 REMOTE_LOCAL:=local
 
 prerelease: PRERELEASE = true
+prerelease: BUILD_OPTS = --ghc-options '-fPIC -optl-static -optl-pthread'
 prerelease: _mkrelease
 
 release: PRERELEASE = false
+release: BUILD_OPTS = --ghc-options '-fPIC -optl-static -optl-pthread'
 release: _mkrelease
 
 _mkrelease: RELEASE_TAG = v$(RELEASE_VERSION)$(shell $(PRERELEASE) && echo '-pr')
