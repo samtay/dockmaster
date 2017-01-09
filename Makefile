@@ -44,6 +44,10 @@ uninstall:
 #
 # app targets
 #
+
+RELEASE_TAG ?= $(shell git rev-parse --abbrev-ref HEAD)
+RELEASE_SHA ?= $(shell git rev-parse --short HEAD)
+
 .PHONY: $(NAMESPACE) compile-%
 
 $(NAMESPACE): compile-dm compile-dmc
@@ -52,8 +56,14 @@ compile-%: clean-%
 	@( \
 		cd $(CURDIR) ; \
 		mkdir -p dist ; \
+		sed \
+			-e 's|@VERSION@|$(RELEASE_TAG)|' \
+			-e 's|@BUILD@|$(shell echo "$(RELEASE_SHA)" | cut -c1-7)|' \
+			--in-place=.bak \
+			src/Options/Utils.hs ; \
 		PATH="$(CURDIR)/dist:$$PATH" ; \
-	  stack install --system-ghc --local-bin-path dist dockmaster:exe:$*  \
+	  stack install --system-ghc --local-bin-path dist dockmaster:exe:$* ; \
+	  mv src/Options/Utils.hs.bak src/Options/Utils.hs \
 	)
 
 #

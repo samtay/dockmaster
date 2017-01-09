@@ -28,7 +28,7 @@ execParser' = customExecParser (prefs showHelpOnEmpty)
 --
 -- Shows version and exits
 versionOption :: Parser (a -> a)
-versionOption = infoOption "v0.1.1-pr" (long "version" <> help "Show version")
+versionOption = infoOption "version @VERSION@ build @BUILD@" (long "version" <> help "Show version")
 
 -- | 'Text' option
 textOption :: Mod OptionFields String -> Parser T.Text
