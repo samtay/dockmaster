@@ -34,7 +34,7 @@ data Dmc
   | Shift   DropOptions
   | Pop     DropOptions
   | Cat
-  | Ls
+  | Ls      LsOption
   deriving (Eq, Show)
 
 -- | Arguments necessary for modifying value
@@ -53,6 +53,10 @@ data DropOptions = DropOptions
   { dName  :: T.Text
   , dCount :: Int
   } deriving (Eq, Show)
+
+-- | Arguments to list command
+data LsOption = Fields | Compositions
+  deriving (Eq, Show)
 
 -- | Main runtime
 main :: IO ()
@@ -87,7 +91,7 @@ runDmc (Push    (SetOptions n v))  = runPush n v
 runDmc (Shift   (DropOptions n c)) = runShift n c
 runDmc (Pop     (DropOptions n c)) = runPop n c
 runDmc Cat                         = runCat
-runDmc Ls                          = runLs
+runDmc (Ls x)                      = runLs x
 
 -- | Set value
 runSet :: T.Text -> [T.Text] -> Sh ()
@@ -128,9 +132,10 @@ runPop n c = runModArray (pop c) n >> recap n
 runCat :: Sh ()
 runCat = (show' . Y.Object <$> configO) >>= echo
 
+-- | List entities
+runLs :: LsOption -> Sh ()
 -- | List all available fields, broken down by value type
-runLs :: Sh ()
-runLs = do
+runLs Fields = do
   let flatFields = D.configFields \\ D.arrayFields
       fieldInfo = [("Flat", flatFields), ("Array", D.arrayFields)]
   forM_ fieldInfo $
@@ -138,6 +143,8 @@ runLs = do
       echo $ T.unwords [n, "config fields:"]
       mapM_ echo fs
       echo ""
+-- | List all available compositions
+runLs Compositions = config >>= D.getAvailableCompositions' >>= mapM_ echo
 
 -- | Takes a binary operation and uses it on the argument value and current value
 runAddToArray :: (Y.Array -> Y.Array -> Y.Array) -> T.Text -> [T.Text] -> Sh ()
@@ -218,20 +225,41 @@ show' = T.decodeUtf8 . Y.encode
 -- | Parser for /set/ commands
 setOptions :: ReadM T.Text -> Parser SetOptions
 setOptions optType = SetOptions
-  <$> argument optType (metavar "NAME" <> help "Name of the setting to modify")
+  <$> argument optType
+    (  metavar "NAME"
+    <> help "Name of the setting to modify"
+    <> completeWith (map T.unpack D.configFields)
+    )
   <*> some (argument text (metavar "VALUE" <> help ("Value(s) to add/set. "
         ++ "Hint: You can use multiple values for array types.")))
 
 -- | Parser for /get/ commands
 getOptions :: Parser GetOptions
 getOptions = GetOptions
-  <$> argument anyfield (metavar "NAME" <> help "Name of the setting to retrieve")
+  <$> argument anyfield
+    (  metavar "NAME"
+    <> help "Name of the setting to retrieve"
+    <> completeWith (map T.unpack D.configFields)
+    )
 
 -- | Parser for /drop/ commands
 dropOptions :: Parser DropOptions
 dropOptions = DropOptions
-  <$> argument arrfield (metavar "NAME" <> help "Name of the array setting to modify")
+  <$> argument arrfield
+    (  metavar "NAME"
+    <> help "Name of the array setting to modify"
+    <> completeWith (map T.unpack D.arrayFields)
+    )
   <*> argument auto (metavar "COUNT" <> value 1 <> showDefault <> help "Number of values to drop")
+
+-- | Parser for /ls/ command
+lsOptions :: Parser LsOption
+lsOptions = argument lsarg
+  (  metavar "ENTITY"
+  <> value Compositions
+  <> help "Entity to list (f|fields, c|compositions)"
+  <> completeWith ["fields", "compositions"]
+  )
 
 -- | Reader for any config fields
 anyfield :: ReadM T.Text
@@ -241,21 +269,38 @@ anyfield = text >>= inConfig
 arrfield :: ReadM T.Text
 arrfield = text >>= inConfig >>= inConfigArr
 
+-- | Reader for @ls@ arguments
+lsarg :: ReadM LsOption
+lsarg = text >>= fn where
+  fn s
+    | s `elem` ["f", "field", "fields"]                     = return Fields
+    | s `elem` ["c", "comp", "composition", "compositions"] = return Compositions
+    | otherwise = readerError $ unwords
+      [ (T.unpack s)
+      , "is not a valid entity to list. The available entities are:"
+      , "fields, compositions." ]
+
 -- | Parse argument for any value type
 inConfig :: T.Text -> ReadM T.Text
 inConfig field
   | field `elem` D.configFields = return field
-  | otherwise                   = readerError $ (T.unpack field) ++ " is not a valid config field. "
-                                    ++ "Try the 'ls' command for help."
+  | otherwise                   = readerError $ unwords
+                                    [ (T.unpack field)
+                                    , "is not a valid config field."
+                                    , "Try the 'ls f' command for help."]
 
 -- | Parse argument for array value type
 inConfigArr :: T.Text -> ReadM T.Text
 inConfigArr field
   | field `elem` D.arrayFields = return field
-  | otherwise                  = readerError $ (T.unpack field) ++ " is not an array type. "
-                                   ++ "Try the 'ls' command for help."
+  | otherwise                  = readerError $ unwords
+                                   [ (T.unpack field)
+                                   , "is not an array type."
+                                   , "Try the 'ls f' command for help."]
 
 -- | Parser for 'Dmc'.
+-- TODO
+-- flag' Nothing (long "version" <> hidden) <|> (Just <$> normal_options)
 parser :: Parser Dmc
 parser = subparser
   (
@@ -279,10 +324,10 @@ parser = subparser
        "Pop value (for arrays)")
   <> (command "cat" $ commandInfo
        (pure Cat)
-       ("Cat full configuration"))
+       "Cat full configuration")
   <> (command "ls" $ commandInfo
-       (pure Ls)
-       ("List available config fields"))
+       (Ls <$> lsOptions)
+       "List entities")
   )
 
 -- | Generate 'ParserInfo' for 'Dmc'.

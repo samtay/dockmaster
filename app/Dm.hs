@@ -40,6 +40,7 @@ parser defaultCompDir =
         <> metavar "PATH"
         <> showDefault
         <> value defaultCompDir
+        <> completer availableCompositions
         <> help "Composition directory. Note this can be relative to any directories specified in global config." )
     <*> switch
         ( long "verbose"
@@ -76,3 +77,9 @@ execDm c v l command optargs = shelly
 subVerbosity :: Bool -> Sh a -> Sh a
 subVerbosity v =
   print_stdout v . print_stderr v . print_commands v
+
+-- | Completer for composition option
+availableCompositions :: Completer
+availableCompositions = listIOCompleter $ shelly $
+  either (const []) (map T.unpack)
+    <$> getAvailableCompositions

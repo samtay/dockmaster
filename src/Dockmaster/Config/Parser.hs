@@ -17,7 +17,8 @@ module Dockmaster.Config.Parser
   , config
   , baseConfig
   , resolvePath
-
+  , getAvailableCompositions
+  , getAvailableCompositions'
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
@@ -32,8 +33,11 @@ import Prelude hiding (FilePath, log)
 import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FP
 import qualified Filesystem as F
+import Data.Bool (bool)
+import Data.List (nub)
 import Data.Monoid ((<>), mconcat, First(..))
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), forM)
+import Data.Maybe (mapMaybe)
 default (T.Text)
 
 -- | Dockmaster configuration runtime errors
@@ -127,6 +131,29 @@ getWorkDir' cfg p = do
 
   return $ maybe (Left WorkDirNotFound) Right mPath
 
+getAvailableCompositions :: Sh (Either DmcError [T.Text])
+getAvailableCompositions = do
+  eCfg <- config
+  case eCfg of
+    (Left err)  -> return $ Left err
+    (Right cfg) -> Right <$> getAvailableCompositions' cfg
+
+-- | List available composition directories
+--
+-- This does not return absolute or even relative paths - rather, this returns
+-- the text that would be necessary to pass to `dm -c`, which are the names of
+-- the valid workdir subdirectories of the listings specified in the 'Config' record.
+getAvailableCompositions' :: Config -> Sh [T.Text]
+getAvailableCompositions' cfg = do
+  ps  <- dmcPaths <$> parseConfig cfg
+  pss <- forM ps $
+    \p -> test_d p >>= bool (return []) (findCompositionsUnder p)
+  mapM toText $ nub . filter (/="") . concat $ pss
+  where
+    findCompositionsUnder p = do
+      fs <- findWhen (return . (=="dockmaster.yml") . FP.filename) p
+      return $ mapMaybe (FP.stripPrefix (sanitizeDir p) . FP.directory) fs
+
 -- | Check if directory @dir@ contains a @dockmaster.yml@ file
 -- If it does, return @First dir@, otherwise Nothing
 -- Using the @First@ monoid so we can have precedence for composition listings
@@ -137,3 +164,7 @@ tryPath dir = do
   return . First $ if found
      then Just dir
      else Nothing
+
+-- | Sanitize a directory filepath so that it always ends with a trailing "/"
+sanitizeDir :: FilePath -> FilePath
+sanitizeDir = FP.collapse . (</> ".")
