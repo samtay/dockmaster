@@ -17,10 +17,11 @@ module Dockmaster.Config.Parser
   , config
   , baseConfig
   , resolvePath
+  , getAvailableCompositions
+  , getAvailableCompositions'
   -- * Resolving relative paths
   , getWorkDir
   , getWorkDir'
-  , getAvailableCompositions'
   ) where
 
 import Dockmaster.Config.Types
@@ -129,6 +130,13 @@ getWorkDir' cfg p = do
               else mconcat <$> mapM tryPath (p : (map (</> p) $ dmcPaths cfg))
 
   return $ maybe (Left WorkDirNotFound) Right mPath
+
+getAvailableCompositions :: Sh (Either DmcError [T.Text])
+getAvailableCompositions = do
+  eCfg <- config
+  case eCfg of
+    (Left err)  -> return $ Left err
+    (Right cfg) -> Right <$> getAvailableCompositions' cfg
 
 -- | List available composition directories
 --

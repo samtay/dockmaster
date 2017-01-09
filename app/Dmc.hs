@@ -225,19 +225,31 @@ show' = T.decodeUtf8 . Y.encode
 -- | Parser for /set/ commands
 setOptions :: ReadM T.Text -> Parser SetOptions
 setOptions optType = SetOptions
-  <$> argument optType (metavar "NAME" <> help "Name of the setting to modify")
+  <$> argument optType
+    (  metavar "NAME"
+    <> help "Name of the setting to modify"
+    <> completeWith (map T.unpack D.configFields)
+    )
   <*> some (argument text (metavar "VALUE" <> help ("Value(s) to add/set. "
         ++ "Hint: You can use multiple values for array types.")))
 
 -- | Parser for /get/ commands
 getOptions :: Parser GetOptions
 getOptions = GetOptions
-  <$> argument anyfield (metavar "NAME" <> help "Name of the setting to retrieve")
+  <$> argument anyfield
+    (  metavar "NAME"
+    <> help "Name of the setting to retrieve"
+    <> completeWith (map T.unpack D.configFields)
+    )
 
 -- | Parser for /drop/ commands
 dropOptions :: Parser DropOptions
 dropOptions = DropOptions
-  <$> argument arrfield (metavar "NAME" <> help "Name of the array setting to modify")
+  <$> argument arrfield
+    (  metavar "NAME"
+    <> help "Name of the array setting to modify"
+    <> completeWith (map T.unpack D.arrayFields)
+    )
   <*> argument auto (metavar "COUNT" <> value 1 <> showDefault <> help "Number of values to drop")
 
 -- | Parser for /ls/ command
@@ -246,6 +258,7 @@ lsOptions = argument lsarg
   (  metavar "ENTITY"
   <> value Compositions
   <> help "Entity to list (f|fields, c|compositions)"
+  <> completeWith ["fields", "compositions"]
   )
 
 -- | Reader for any config fields
