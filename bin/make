@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# encapsulate repository Makefile in a contmainer
+
+main(){
+  set -eo pipefail
+  local path="${BASH_SOURCE[0]}"
+  while [ -L "$path" ] ; do path="$(readlink "$path")" ; done
+  readonly CWD="$( pwd -P )"
+  readonly SCRIPT_CWD="$( cd $(dirname ${path}) ; pwd -P )"
+
+  # runtime
+  local home=~/.dockmaster/make-home
+  local home_ssh=~/.ssh
+  mkdir -p "$home"
+
+  __git_root="$(git rev-parse --show-toplevel)" || true
+  cd "$__git_root"
+
+  image=$(docker build -q -f Dockerfile-make .) || {
+    echo "failed building make image"
+    exit 1
+  }
+
+  echo "build $image"
+
+  local docker_flags=(
+    "-v $__git_root:$__git_root:rw"
+    "-v $home:$home:rw"
+    "-v $home_ssh:$home/.ssh:ro"
+    "-v $HOME/.dex/homes/rclone-latest/.rclone.conf:$home/.rclone.conf:ro"
+    "-e GH_TOKEN=$GH_TOKEN"
+    "-e HOME=$home"
+    "--workdir $__git_root"
+    "-u $(id -u):$(id -g)"
+    "-it"
+    "--rm"
+  )
+
+  # @TODO use docker/local from shell-helpers (ensure local docker)
+  if [ "$1" = "debug" ]; then
+      docker run ${docker_flags[@]} $image bash
+  else
+    docker run ${docker_flags[@]} $image make "$@"
+  fi
+}
+
+main "$@"

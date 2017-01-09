@@ -1,0 +1,34 @@
+FROM mitchty/alpine-ghc:latest
+# ^^^ alpine linux with a ghc compiled with -fPIC ,
+#     for making portable haskell binaries
+
+# dev deps
+RUN apk --no-cache add \
+  alpine-sdk \
+  ca-certificates \
+  git \
+  gmp-dev \
+  jq \
+  openssh \
+  zlib-dev
+
+# gcc bug : https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/640734
+RUN cp /usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/crtbeginT.o /usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/crtbeginT.o.old && \
+    cp /usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/crtbeginS.o /usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/crtbeginT.o
+
+# add rclone
+RUN curl -L https://github.com/ncw/rclone/releases/download/v1.35/rclone-v1.35-linux-amd64.zip > /tmp/rclone.zip && \
+  cd /tmp && \
+  unzip rclone.zip && \
+  mv rclone-v1.35-linux-amd64/rclone /usr/local/bin/rclone && \
+  ln -s /usr/local/bin/rclone /usr/local/bin/drclone && \
+  rm -rf /tmp/rclone*
+
+# register executing user's uid and gid at runtime
+RUN chmod o+w /etc/passwd /etc/group && \
+  printf "#!/usr/bin/env sh\n\
+  echo \"hostuser:x:\$(id -u):$(id -g):gecos:\$HOME:/bin/sh\" >> /etc/passwd\n\
+  echo \"hostuser:x:\$(id -g):\" >> /etc/group\n\
+  exec \$@\n" > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
