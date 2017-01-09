@@ -22,7 +22,13 @@ default (T.Text)
 
 -- | Custom parser to show help on error
 execParser' :: ParserInfo a -> IO a
-execParser' = customExecParser (prefs showHelpOnError)
+execParser' = customExecParser (prefs showHelpOnEmpty)
+
+-- | Version option (shared between dm and dmc)
+--
+-- Shows version and exits
+versionOption :: Parser (a -> a)
+versionOption = infoOption "v0.1.1-pr" (long "version" <> help "Show version")
 
 -- | 'Text' option
 textOption :: Mod OptionFields String -> Parser T.Text

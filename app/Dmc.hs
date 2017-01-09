@@ -6,7 +6,7 @@ module Main where
 import Options.Applicative
 import Shelly hiding (command)
 
-import Options.Utils (text, execParser')
+import Options.Utils (text, execParser', versionOption)
 import Dockmaster ((</>>=))
 import qualified Dockmaster as D
 import qualified Data.Aeson as J
@@ -299,8 +299,6 @@ inConfigArr field
                                    , "Try the 'ls f' command for help."]
 
 -- | Parser for 'Dmc'.
--- TODO
--- flag' Nothing (long "version" <> hidden) <|> (Just <$> normal_options)
 parser :: Parser Dmc
 parser = subparser
   (
@@ -332,7 +330,7 @@ parser = subparser
 
 -- | Generate 'ParserInfo' for 'Dmc'.
 opts :: ParserInfo Dmc
-opts = info (helper <*> parser)
+opts = info (helper <*> versionOption <*> parser)
   (  fullDesc
   <> header "dmc - dockmaster configuration modifiers"
   )

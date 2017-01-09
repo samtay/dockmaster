@@ -6,11 +6,11 @@ module Main where
 import Dockmaster
 import Shelly
 import Options.Applicative
+import Options.Utils
 
 import Prelude hiding (FilePath)
 import Data.Monoid ((<>))
 import Control.Monad (join)
-import Options.Utils (text, filePathOption, execParser')
 import qualified Data.Text as T
 
 default (T.Text)
@@ -24,7 +24,7 @@ main = do
   envCompDir <- shelly $ get_env "DOCKMASTER_COMPOSITION"
   let defaultCompDir = maybe "." T.unpack envCompDir
   join . execParser' $
-    info (helper <*> parser defaultCompDir)
+    info (helper <*> versionOption <*> parser defaultCompDir)
     (  fullDesc
     <> progDesc "Orchestrate your docker-compose"
     <> header "dm - yaml loving docker compose orchestration"
