@@ -69,6 +69,7 @@ execDm :: FilePath -- ^ Composition
 execDm c v l command optargs = shelly
   $ escaping False
   $ subVerbosity v
+  $ errExit False
   $ dockmaster c l command optargs
 
 -- | Accepts a verbosity setting for the subshell

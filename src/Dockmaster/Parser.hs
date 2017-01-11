@@ -66,7 +66,7 @@ parseEnvFiles fs = do
   files <- mapM parsePath' fs
   vars <- if null files
              then return T.empty
-             else run "cop" $ "--shell" : files
+             else run' "cop" $ "--shell" : files
   return $ pairEnvvars $ T.unpack vars
 
 -- | Executes specific dc command pre/post hooks around action argument
@@ -99,17 +99,17 @@ execHook (File txt)  = do
   let file = fromText $ if not (T.null txt) && (T.head txt /= '/')
       then T.append "./" txt
       else txt
-  bash_ file []
+  bash_' file []
 -- Execute "shell" hook type
-execHook (Shell txt) = unless (T.null txt) $ escaping False $ do
+execHook (Shell txt) = unless (T.null txt) $ escaping False $
   let (shCmd:shArgs) = T.words txt
-  run_ (fromText shCmd) shArgs
+   in run_' (fromText shCmd) shArgs
 
 -- | Takes machine name and 'Sh' action, and wraps 'Sh' action in scope of
 -- @docker-machine@ env
 dockermachine :: T.Text -> Sh a -> Sh a
 dockermachine m action = sub $ do
-  envvars <- run "docker-machine" ["env", m]
+  envvars <- run' "docker-machine" ["env", m]
   setEnvvars $ pairEnvvars $ T.unpack envvars
   action
 

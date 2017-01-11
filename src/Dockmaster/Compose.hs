@@ -16,7 +16,7 @@ module Dockmaster.Compose
 
 -- Local modules
 import Dockmaster.Types
-import Dockmaster.Utils (parsePath', toText)
+import Dockmaster.Utils (parsePath', toText, run', run_')
 
 -- External modules
 import Control.Monad ((<=<), forM_)
@@ -37,7 +37,7 @@ dockercompose cfg cliArgs = do
       dcfiles = dcFiles dcfg
   fargs <- composeTemplates dcfiles
   print_stdout True $
-    run_ "docker-compose" $ dcflags ++ intersperse' "-f" fargs ++ cliArgs
+    run_' "docker-compose" $ dcflags ++ intersperse' "-f" fargs ++ cliArgs
   decomposeTemplates
 
 -- | Compiles compose files specified in 'Dockmaster' configuration and
@@ -79,7 +79,7 @@ compileTemplate f cs = do
 
 -- | COP render template wrapper
 cop :: T.Text -> [T.Text] -> Sh T.Text
-cop template vars = run "cop" $ "--render-template" : template : vars
+cop template vars = run' "cop" $ "--render-template" : template : vars
 
 -- | Prefix for temporary compose files
 tmpFilePrefix :: T.Text
