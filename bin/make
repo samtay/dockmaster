@@ -29,6 +29,8 @@ main(){
     "-v $home:$home:rw"
     "-v $home_ssh:$home/.ssh:ro"
     "-v $HOME/.dex/homes/rclone-latest/.rclone.conf:$home/.rclone.conf:ro"
+    "-e RELEASE_VERSION=$RELEASE_VERSION"
+    "-e RELEASE_BRANCH=$RELEASE_BRANCH"
     "-e GH_TOKEN=$GH_TOKEN"
     "-e HOME=$home"
     "--workdir $__git_root"
