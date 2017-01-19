@@ -132,11 +132,7 @@ getWorkDir' cfg p = do
   return $ maybe (Left WorkDirNotFound) Right mPath
 
 getAvailableCompositions :: Sh (Either DmcError [T.Text])
-getAvailableCompositions = do
-  eCfg <- config
-  case eCfg of
-    (Left err)  -> return $ Left err
-    (Right cfg) -> Right <$> getAvailableCompositions' cfg
+getAvailableCompositions = config >>= traverse getAvailableCompositions'
 
 -- | List available composition directories
 --
