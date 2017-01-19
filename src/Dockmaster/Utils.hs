@@ -102,9 +102,7 @@ parsePath' = toText >=> parsePath >=> toText
 
 -- | Convert 'FilePath' to 'Text' within 'Sh', exits on failure to convert
 toText :: FilePath -> Sh T.Text
-toText fp = case FP.toText fp of
-    Left err   -> errorExit err
-    Right path -> return path
+toText fp = either errorExit' return $ FP.toText fp
 
 -- | Get home directory
 getHomeDirectory :: Sh FilePath
